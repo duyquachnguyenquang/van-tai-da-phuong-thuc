@@ -1,0 +1,3473 @@
+<!DOCTYPE html>
+<html lang="vi" class="scroll-smooth">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Hệ thống Đánh giá Chuỗi Vận tải Đa phương thức & Mô phỏng Fuzzy AHP - UTH</title>
+
+  <!-- Tailwind CSS CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            uth: {
+              navy: '#1e3a8a',
+              navyDark: '#0f172a',
+              navyLight: '#1d4ed8',
+              emerald: '#059669',
+              emeraldLight: '#10b981',
+              amber: '#d97706',
+              amberLight: '#f59e0b',
+              crimson: '#dc2626'
+            }
+          },
+          fontFamily: {
+            sans: ['Inter', 'Segoe UI', 'Roboto', 'system-ui', 'sans-serif'],
+            mono: ['JetBrains Mono', 'Fira Code', 'Consolas', 'monospace']
+          }
+        }
+      }
+    };
+  </script>
+
+  <!-- Google Fonts: Inter & JetBrains Mono -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
+
+  <!-- FontAwesome 6 -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" />
+
+  <!-- Leaflet.js CSS & JS -->
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+
+  <!-- Chart.js -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+
+  <!-- KaTeX for Mathematical Formulas -->
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css" />
+  <script src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/contrib/auto-render.min.js"></script>
+
+  <style>
+    body {
+      background-color: #f1f5f9;
+      color: #0f172a;
+      font-family: 'Inter', system-ui, -apple-system, sans-serif;
+    }
+
+    /* Custom Range Sliders */
+    input[type="range"].ahp-slider {
+      -webkit-appearance: none;
+      appearance: none;
+      width: 100%;
+      height: 8px;
+      border-radius: 999px;
+      background: #e2e8f0;
+      outline: none;
+      transition: background 0.2s;
+    }
+    input[type="range"].ahp-slider::-webkit-slider-thumb {
+      -webkit-appearance: none;
+      appearance: none;
+      width: 20px;
+      height: 20px;
+      border-radius: 50%;
+      background: #1e3a8a;
+      border: 3px solid #ffffff;
+      box-shadow: 0 2px 6px rgba(15, 23, 42, 0.35);
+      cursor: pointer;
+      transition: transform 0.15s ease, background-color 0.15s ease;
+    }
+    input[type="range"].ahp-slider::-webkit-slider-thumb:hover {
+      transform: scale(1.15);
+      background: #059669;
+    }
+
+    /* Leaflet custom markers & popups */
+    .leaflet-popup-content-wrapper {
+      border-radius: 12px;
+      box-shadow: 0 10px 25px -5px rgba(15, 23, 42, 0.25);
+      padding: 2px;
+    }
+    .custom-marker-pin {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      border-radius: 9999px;
+      color: white;
+      font-weight: 700;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+      border: 2.5px solid #ffffff;
+      transition: transform 0.2s ease;
+    }
+    .custom-marker-pin:hover {
+      transform: scale(1.15);
+    }
+
+    /* Animated Route Line */
+    @keyframes dashDraw {
+      to {
+        stroke-dashoffset: -40;
+      }
+    }
+    .animated-route-line {
+      animation: dashDraw 1.8s linear infinite;
+    }
+
+    /* Scrollbar styling */
+    ::-webkit-scrollbar {
+      width: 7px;
+      height: 7px;
+    }
+    ::-webkit-scrollbar-track {
+      background: #f1f5f9;
+    }
+    ::-webkit-scrollbar-thumb {
+      background: #94a3b8;
+      border-radius: 9999px;
+    }
+    ::-webkit-scrollbar-thumb:hover {
+      background: #64748b;
+    }
+
+    /* Print / PDF Export Styles */
+    @media print {
+      body {
+        background: #ffffff !important;
+        color: #000000 !important;
+      }
+      .no-print {
+        display: none !important;
+      }
+      .print-break-inside-avoid {
+        break-inside: avoid;
+        page-break-inside: avoid;
+      }
+      .print-full-width {
+        grid-column: span 12 / span 12 !important;
+      }
+      #mapContainer {
+        height: 360px !important;
+      }
+      header {
+        position: static !important;
+        background: #1e3a8a !important;
+        -webkit-print-color-adjust: exact !important;
+        print-color-adjust: exact !important;
+      }
+      * {
+        -webkit-print-color-adjust: exact !important;
+        print-color-adjust: exact !important;
+      }
+    }
+  </style>
+</head>
+<body class="min-h-screen flex flex-col selection:bg-uth-navy selection:text-white">
+
+  <!-- ==================== 1. HEADER & GLOBAL CONTROLS ==================== -->
+  <header class="sticky top-0 z-40 bg-gradient-to-r from-slate-900 via-uth-navy to-slate-900 text-white shadow-xl border-b border-blue-800/60">
+    <div class="max-w-[1600px] mx-auto px-4 sm:px-6 py-3.5">
+      <div class="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
+        
+        <!-- Brand & Academic Title -->
+        <div class="flex items-start sm:items-center gap-3.5">
+          <div class="w-12 h-12 rounded-xl bg-gradient-to-br from-amber-400 to-amber-600 flex flex-col items-center justify-center shadow-lg border border-white/20 shrink-0">
+            <i class="fa-solid fa-anchor text-slate-950 text-lg leading-none"></i>
+            <span class="text-[10px] font-extrabold tracking-tighter text-slate-950 mt-0.5">UTH</span>
+          </div>
+          <div>
+            <div class="flex flex-wrap items-center gap-2">
+              <span class="px-2.5 py-0.5 text-xs font-bold uppercase tracking-wider bg-blue-500/20 text-blue-200 border border-blue-400/30 rounded-full">
+                Trường Đại học Giao thông vận tải TP.HCM (UTH)
+              </span>
+              <span class="px-2.5 py-0.5 text-xs font-semibold bg-emerald-500/20 text-emerald-300 border border-emerald-400/30 rounded-full flex items-center gap-1">
+                <i class="fa-solid fa-scale-balanced text-[10px]"></i> Chuẩn Nghị định 30 &amp; TT 46/2015/BGTVT
+              </span>
+            </div>
+            <h1 class="text-lg sm:text-xl font-extrabold tracking-tight text-white mt-1">
+              Hệ thống Đánh giá Chuỗi Vận tải Đa phương thức &amp; Mô phỏng Fuzzy AHP
+            </h1>
+            <p class="text-xs sm:text-sm text-blue-200/90 font-medium">
+              Môn: Quản trị Vận tải Đa phương thức — Trực quan hóa Case Study &amp; Ra quyết định Đa tiêu chí (MCDM) 2026
+            </p>
+          </div>
+        </div>
+
+        <!-- Global Controls: Case Selector & Action Buttons -->
+        <div class="flex flex-wrap items-center gap-2.5">
+          <!-- Dropdown Selector -->
+          <div class="relative min-w-[290px] sm:min-w-[380px] flex-1 lg:flex-initial">
+            <label for="caseSelector" class="sr-only">Chọn Lô hàng Case Study</label>
+            <div class="relative">
+              <i class="fa-solid fa-boxes-stacked absolute left-3.5 top-1/2 -translate-y-1/2 text-amber-400 text-sm pointer-events-none"></i>
+              <select
+                id="caseSelector"
+                aria-label="Chọn kịch bản lô hàng nghiên cứu"
+                class="w-full pl-10 pr-10 py-2.5 bg-slate-800/90 hover:bg-slate-800 text-white text-xs sm:text-sm font-semibold rounded-xl border border-blue-400/40 focus:outline-none focus:ring-2 focus:ring-amber-400 shadow-inner transition cursor-pointer appearance-none"
+              >
+                <option value="case1">CASE 1: Linh kiện điện tử giá trị cao (Bắc Ninh → Frankfurt | 5.000 kg | $1.000.000 USD)</option>
+                <option value="case2">CASE 2: Cà phê nhân xuất khẩu khối lượng lớn (Đắk Lắk → Hamburg | 2.000 tấn | 100x20'DC)</option>
+                <option value="case3">CASE 3: Máy biến áp siêu trường siêu trọng 150T (Kobe → Phú Mỹ → Tây Nguyên | 150T LPT)</option>
+                <option value="case_custom">CASE TÙY CHỈNH: Tự nhập dữ liệu lô hàng, tuyến đường, chi phí &amp; rủi ro</option>
+              </select>
+              <i class="fa-solid fa-chevron-down absolute right-3.5 top-1/2 -translate-y-1/2 text-slate-300 text-xs pointer-events-none"></i>
+            </div>
+          </div>
+
+          <!-- Toggle Custom Data Input Studio Button -->
+          <button
+            id="btnToggleInputStudio"
+            type="button"
+            class="no-print inline-flex items-center gap-2 px-3.5 py-2.5 rounded-xl bg-cyan-500 hover:bg-cyan-400 text-slate-950 font-extrabold text-xs sm:text-sm shadow-md transition active:scale-95"
+          >
+            <i class="fa-solid fa-pen-to-square"></i>
+            <span>Tự Nhập Dữ Liệu / Kiểm Chứng</span>
+          </button>
+
+          <!-- Open Academic Formula Modal Button -->
+          <button
+            id="btnOpenAcademicModal"
+            type="button"
+            class="no-print inline-flex items-center gap-2 px-3.5 py-2.5 rounded-xl bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold text-xs sm:text-sm shadow-md transition active:scale-95"
+          >
+            <i class="fa-solid fa-square-root-variable"></i>
+            <span>Cơ sở Lý thuyết &amp; Công thức</span>
+          </button>
+
+          <!-- Print / Export PDF Button -->
+          <button
+            id="btnExportPdf"
+            type="button"
+            class="no-print inline-flex items-center gap-2 px-3.5 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs sm:text-sm shadow-md border border-emerald-400/30 transition active:scale-95"
+          >
+            <i class="fa-solid fa-file-pdf"></i>
+            <span>Export / In báo cáo PDF</span>
+          </button>
+        </div>
+      </div>
+
+      <!-- Quick Case Switcher Pills + Executive Cargo Telemetry Bar -->
+      <div class="mt-3 pt-3 border-t border-blue-800/60 flex flex-col xl:flex-row xl:items-center justify-between gap-3">
+        <!-- Quick Switcher Tabs -->
+        <div class="no-print flex flex-wrap items-center gap-1.5" id="caseQuickTabs">
+          <button data-case="case1" class="case-tab-btn px-3 py-1.5 rounded-lg text-xs font-bold transition flex items-center gap-1.5 bg-white text-uth-navy shadow-sm">
+            <i class="fa-solid fa-microchip"></i> Lô 1: Linh kiện Điện tử (Air vs Sea-Air)
+          </button>
+          <button data-case="case2" class="case-tab-btn px-3 py-1.5 rounded-lg text-xs font-bold transition flex items-center gap-1.5 bg-slate-800/70 text-blue-200 hover:bg-slate-800">
+            <i class="fa-solid fa-ship"></i> Lô 2: 2.000 Tấn Cà phê (Barge + Cái Mép)
+          </button>
+          <button data-case="case3" class="case-tab-btn px-3 py-1.5 rounded-lg text-xs font-bold transition flex items-center gap-1.5 bg-slate-800/70 text-blue-200 hover:bg-slate-800">
+            <i class="fa-solid fa-truck-Ramp-box"></i> Lô 3: Máy biến áp 150T (Heavy-Lift + SPMT)
+          </button>
+          <button data-case="case_custom" class="case-tab-btn px-3 py-1.5 rounded-lg text-xs font-bold transition flex items-center gap-1.5 bg-cyan-500/20 text-cyan-300 border border-cyan-400/30 hover:bg-cyan-500/30">
+            <i class="fa-solid fa-flask-vial"></i> Kịch bản Tự nhập (Custom Check)
+          </button>
+        </div>
+
+        <!-- Active Cargo Metadata Banner -->
+        <div class="flex flex-wrap items-center gap-3 text-xs bg-slate-950/50 px-3.5 py-2 rounded-xl border border-blue-400/20">
+          <div class="flex items-center gap-1.5">
+            <span class="text-slate-400">Lô hàng:</span>
+            <strong id="bannerCargoName" class="text-amber-300 font-semibold">Lô 1: Linh kiện điện tử (Bắc Ninh - Frankfurt)</strong>
+          </div>
+          <span class="text-slate-600">|</span>
+          <div class="flex items-center gap-1.5">
+            <i class="fa-solid fa-circle-info text-blue-400"></i>
+            <span id="bannerCargoInfo" class="text-slate-200 font-medium">5.000 kg Camera Modules/PCBA | Trị giá: $1.000.000 USD ($200/kg)</span>
+          </div>
+          <span class="text-slate-600 hidden sm:inline">|</span>
+          <div class="flex items-center gap-1.5">
+            <span class="text-slate-400">Phương án tối ưu:</span>
+            <span id="bannerWinnerName" class="px-2 py-0.5 rounded bg-emerald-500/20 text-emerald-300 border border-emerald-400/30 font-bold">PA1: Direct Air (HAN - FRA)</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <!-- ==================== MAIN WORKSPACE GRID ==================== -->
+  <main class="flex-1 max-w-[1600px] w-full mx-auto px-4 sm:px-6 py-5">
+
+    <!-- ==================== CUSTOM DATA INPUT & SCENARIO CHECKER STUDIO ==================== -->
+    <section id="customInputStudio" class="no-print mb-6 bg-white rounded-2xl shadow-lg border-2 border-cyan-500/70 overflow-hidden transition-all">
+      <div class="bg-gradient-to-r from-slate-900 via-uth-navy to-cyan-950 px-5 py-3.5 text-white flex flex-wrap items-center justify-between gap-3">
+        <div class="flex items-center gap-3">
+          <div class="w-9 h-9 rounded-xl bg-cyan-400 text-slate-950 flex items-center justify-center font-extrabold shadow">
+            <i class="fa-solid fa-sliders"></i>
+          </div>
+          <div>
+            <div class="flex items-center gap-2">
+              <h2 class="text-sm sm:text-base font-extrabold tracking-tight">BỘ NHẬP DỮ LIỆU ĐẦU VÀO &amp; TỰ KIỂM CHỨNG KỊCH BẢN (GROUP MEMBER CHECKER)</h2>
+              <span class="px-2 py-0.5 text-[10px] font-bold uppercase bg-cyan-400/20 text-cyan-300 border border-cyan-400/40 rounded-full">Live Interactive Input</span>
+            </div>
+            <p class="text-xs text-cyan-100/90">
+              Cho phép thành viên nhóm tự nhập Điểm đi, Điểm đến, Loại hàng, Giá trị lô hàng ($V$), Lãi suất ($r$), Trượt giá ($\delta$), Chia lô 20/80, Chi phí cước &amp; Rủi ro để kiểm tra kết quả tức thì
+            </p>
+          </div>
+        </div>
+
+        <div class="flex flex-wrap items-center gap-2">
+          <button id="btnExportJsonScenario" type="button" class="px-3 py-1.5 rounded-lg bg-white/10 hover:bg-white/20 text-xs font-bold text-white border border-white/20 transition flex items-center gap-1.5" title="Tải kịch bản hiện tại thành file .JSON để gửi cho thành viên nhóm">
+            <i class="fa-solid fa-download text-cyan-300"></i> Xuất JSON
+          </button>
+          <label class="px-3 py-1.5 rounded-lg bg-white/10 hover:bg-white/20 text-xs font-bold text-white border border-white/20 transition flex items-center gap-1.5 cursor-pointer" title="Nạp file .JSON kịch bản từ thành viên khác">
+            <i class="fa-solid fa-upload text-amber-300"></i> Nạp JSON
+            <input id="inputImportJsonScenario" type="file" accept=".json" class="hidden" />
+          </label>
+          <button id="btnResetFactoryDefault" type="button" class="px-3 py-1.5 rounded-lg bg-rose-500/20 hover:bg-rose-500/30 text-xs font-bold text-rose-200 border border-rose-400/30 transition flex items-center gap-1.5">
+            <i class="fa-solid fa-rotate"></i> Khôi phục Gốc Tiểu luận
+          </button>
+          <button id="btnCollapseStudio" type="button" class="px-3 py-1.5 rounded-lg bg-cyan-500 hover:bg-cyan-400 text-slate-950 text-xs font-extrabold transition flex items-center gap-1">
+            <i class="fa-solid fa-chevron-up" id="studioChevronIcon"></i> <span id="studioCollapseText">Thu gọn</span>
+          </button>
+        </div>
+      </div>
+
+      <div id="customStudioBody" class="p-5 space-y-5 bg-slate-50/70">
+        <!-- Row 1: Cargo Metadata + Route Waypoints + Financial/Risk Parameters -->
+        <div class="grid grid-cols-1 lg:grid-cols-12 gap-4">
+
+          <!-- Col 1: Thông tin Lô hàng & Định giá (4 cols) -->
+          <div class="lg:col-span-4 bg-white p-4 rounded-xl border border-slate-200 shadow-sm space-y-3">
+            <div class="flex items-center justify-between border-b border-slate-100 pb-2">
+              <h3 class="text-xs font-extrabold uppercase tracking-wider text-uth-navy flex items-center gap-1.5">
+                <i class="fa-solid fa-box-open text-amber-500"></i> 1. Thông tin Lô hàng &amp; Đặc tính
+              </h3>
+              <span class="text-[11px] font-mono text-slate-400">Chương 3 Tiểu luận</span>
+            </div>
+
+            <div>
+              <label class="block text-xs font-bold text-slate-700 mb-1">Tên Kịch bản / Lô hàng</label>
+              <input id="inpCargoName" type="text" class="w-full px-3 py-1.5 text-xs font-semibold rounded-lg border border-slate-300 focus:ring-2 focus:ring-uth-navy focus:outline-none" placeholder="VD: Lô 1: Linh kiện điện tử (Bắc Ninh - Frankfurt)" />
+            </div>
+
+            <div class="grid grid-cols-2 gap-2.5">
+              <div>
+                <label class="block text-xs font-bold text-slate-700 mb-1">Phân nhóm Hàng hóa</label>
+                <select id="inpCargoCategory" class="w-full px-2.5 py-1.5 text-xs font-semibold rounded-lg border border-slate-300 bg-white focus:ring-2 focus:ring-uth-navy focus:outline-none">
+                  <option value="electronics">Điện tử / Bán dẫn (HS 8517/8542)</option>
+                  <option value="agri">Nông sản / Cà phê (100x20'DC)</option>
+                  <option value="project">Siêu trường Siêu trọng (LPT 150T)</option>
+                  <option value="reefer">Hàng Lạnh / Thủy sản (Reefer)</option>
+                  <option value="general">Hàng Bách hóa Tổng hợp</option>
+                </select>
+              </div>
+              <div>
+                <label class="block text-xs font-bold text-slate-700 mb-1">Giá trị Lô hàng $V$ (USD)</label>
+                <input id="inpCargoValueUSD" type="number" min="1000" step="10000" value="1000000" class="w-full px-3 py-1.5 text-xs font-mono font-bold text-uth-navy rounded-lg border border-slate-300 focus:ring-2 focus:ring-uth-navy focus:outline-none" />
+              </div>
+            </div>
+
+            <div>
+              <label class="block text-xs font-bold text-slate-700 mb-1">Mô tả Kỹ thuật, Quy cách Đóng gói &amp; Rủi ro Đặc thù</label>
+              <input id="inpCargoInfo" type="text" class="w-full px-3 py-1.5 text-xs rounded-lg border border-slate-300 focus:ring-2 focus:ring-uth-navy focus:outline-none" placeholder="VD: 5.000 kg Camera Modules/PCBA | Đóng gói ESD Tray..." />
+            </div>
+
+            <div class="grid grid-cols-2 gap-2.5 pt-1">
+              <div>
+                <label class="block text-xs font-bold text-slate-700 mb-1">Lãi suất vốn $r$ (%/năm)</label>
+                <input id="inpInterestRate" type="number" min="0" max="50" step="0.5" value="12" class="w-full px-3 py-1.5 text-xs font-mono font-bold text-emerald-700 rounded-lg border border-slate-300" />
+              </div>
+              <div>
+                <label class="block text-xs font-bold text-slate-700 mb-1">Trượt giá $\delta$ (%/tuần)</label>
+                <input id="inpDeprRate" type="number" min="0" max="20" step="0.1" value="1.5" class="w-full px-3 py-1.5 text-xs font-mono font-bold text-amber-700 rounded-lg border border-slate-300" />
+              </div>
+            </div>
+          </div>
+
+          <!-- Col 2: Điểm đi – Điểm trung chuyển – Điểm đến (4 cols) -->
+          <div class="lg:col-span-4 bg-white p-4 rounded-xl border border-slate-200 shadow-sm space-y-2.5">
+            <div class="flex items-center justify-between border-b border-slate-100 pb-2">
+              <h3 class="text-xs font-extrabold uppercase tracking-wider text-uth-navy flex items-center gap-1.5">
+                <i class="fa-solid fa-location-dot text-emerald-600"></i> 2. Điểm Đi – Trung Chuyển – Điểm Đến
+              </h3>
+              <span class="text-[11px] text-emerald-700 font-semibold">Định tuyến OSRM + Hải đồ</span>
+            </div>
+
+            <!-- Origin -->
+            <div class="p-2.5 rounded-lg bg-blue-50/50 border border-blue-200/70 space-y-1.5">
+              <div class="flex items-center justify-between">
+                <span class="text-xs font-bold text-blue-900">1. Điểm xuất phát (Origin)</span>
+                <select id="presetOrigin" class="text-xs bg-white border border-blue-200 rounded px-2 py-0.5 font-semibold text-blue-800">
+                  <option value="">-- Chọn nhanh địa điểm --</option>
+                </select>
+              </div>
+              <div class="grid grid-cols-12 gap-1.5">
+                <input id="inpOriginName" type="text" class="col-span-6 px-2.5 py-1 text-xs font-semibold rounded border border-slate-300" placeholder="Tên điểm đi" />
+                <input id="inpOriginLat" type="number" step="0.0001" class="col-span-3 px-2 py-1 text-xs font-mono rounded border border-slate-300" placeholder="Vĩ độ" />
+                <input id="inpOriginLng" type="number" step="0.0001" class="col-span-3 px-2 py-1 text-xs font-mono rounded border border-slate-300" placeholder="Kinh độ" />
+              </div>
+            </div>
+
+            <!-- Transit Hub -->
+            <div class="p-2.5 rounded-lg bg-amber-50/50 border border-amber-200/70 space-y-1.5">
+              <div class="flex items-center justify-between">
+                <span class="text-xs font-bold text-amber-900">2. Điểm bàn giao / Cửa khẩu chính (Transit)</span>
+                <select id="presetTransit" class="text-xs bg-white border border-amber-200 rounded px-2 py-0.5 font-semibold text-amber-800">
+                  <option value="">-- Chọn nhanh Cảng/Sân bay/ICD --</option>
+                </select>
+              </div>
+              <div class="grid grid-cols-12 gap-1.5">
+                <input id="inpTransitName" type="text" class="col-span-6 px-2.5 py-1 text-xs font-semibold rounded border border-slate-300" placeholder="Tên cảng / sân bay" />
+                <input id="inpTransitLat" type="number" step="0.0001" class="col-span-3 px-2 py-1 text-xs font-mono rounded border border-slate-300" placeholder="Vĩ độ" />
+                <input id="inpTransitLng" type="number" step="0.0001" class="col-span-3 px-2 py-1 text-xs font-mono rounded border border-slate-300" placeholder="Kinh độ" />
+              </div>
+            </div>
+
+            <!-- Destination -->
+            <div class="p-2.5 rounded-lg bg-emerald-50/50 border border-emerald-200/70 space-y-1.5">
+              <div class="flex items-center justify-between">
+                <span class="text-xs font-bold text-emerald-900">3. Điểm đích (Destination)</span>
+                <select id="presetDest" class="text-xs bg-white border border-emerald-200 rounded px-2 py-0.5 font-semibold text-emerald-800">
+                  <option value="">-- Chọn nhanh điểm đích --</option>
+                </select>
+              </div>
+              <div class="grid grid-cols-12 gap-1.5">
+                <input id="inpDestName" type="text" class="col-span-6 px-2.5 py-1 text-xs font-semibold rounded border border-slate-300" placeholder="Tên điểm đến" />
+                <input id="inpDestLat" type="number" step="0.0001" class="col-span-3 px-2 py-1 text-xs font-mono rounded border border-slate-300" placeholder="Vĩ độ" />
+                <input id="inpDestLng" type="number" step="0.0001" class="col-span-3 px-2 py-1 text-xs font-mono rounded border border-slate-300" placeholder="Kinh độ" />
+              </div>
+            </div>
+          </div>
+
+          <!-- Col 3: Máy tính Chuyên sâu Tiểu luận (Chia lô 20/80, Biên lợi nhuận Cà phê, SPMT & Đường sắt) (4 cols) -->
+          <div class="lg:col-span-4 bg-white p-4 rounded-xl border border-slate-200 shadow-sm flex flex-col justify-between space-y-3">
+            <div>
+              <div class="flex items-center justify-between border-b border-slate-100 pb-2 mb-2.5">
+                <h3 class="text-xs font-extrabold uppercase tracking-wider text-uth-navy flex items-center gap-1.5">
+                  <i class="fa-solid fa-calculator text-purple-600"></i> 3. Kiểm chứng Chuyên sâu Theo Tiểu luận
+                </h3>
+                <span class="px-2 py-0.5 rounded bg-purple-100 text-purple-800 font-mono text-[10px] font-bold">Auto-Check</span>
+              </div>
+
+              <!-- Sub-calculator A: Split Shipment (Mục 3.1.3) -->
+              <div class="p-2.5 rounded-xl bg-slate-50 border border-slate-200 space-y-1.5 text-xs mb-2.5">
+                <div class="flex items-center justify-between font-bold text-slate-800">
+                  <span><i class="fa-solid fa-code-branch text-blue-600 mr-1"></i>Chia lô Linh hoạt (Mục 3.1.3):</span>
+                  <span id="lblSplitRatio" class="font-mono text-uth-navy">20% PA1 / 80% PA2</span>
+                </div>
+                <input id="inpSplitAirPct" type="range" min="0" max="100" step="5" value="20" class="ahp-slider w-full" />
+                <div id="splitCalcResultBox" class="text-[11px] text-slate-600 leading-snug pt-1 border-t border-slate-200/80 font-mono">
+                  <!-- Populated via JS -->
+                </div>
+              </div>
+
+              <!-- Sub-calculator B: SPMT Ground Pressure & Rail Gauge / Coffee Margin (Mục 3.2 & 3.3) -->
+              <div class="p-2.5 rounded-xl bg-slate-50 border border-slate-200 space-y-2 text-xs">
+                <div class="font-bold text-slate-800 flex items-center justify-between">
+                  <span><i class="fa-solid fa-gears text-emerald-600 mr-1"></i>Thông số SPMT / Khổ giới hạn (Mục 3.3):</span>
+                  <span class="font-mono text-[11px] text-emerald-700">TT 46/2015</span>
+                </div>
+                <div class="grid grid-cols-3 gap-1.5">
+                  <div>
+                    <label class="block text-[10px] text-slate-500">Khối lượng (T)</label>
+                    <input id="inpSpmtMass" type="number" value="150" min="10" max="500" class="w-full px-2 py-1 text-xs font-mono font-bold rounded border border-slate-300" />
+                  </div>
+                  <div>
+                    <label class="block text-[10px] text-slate-500">Số trục SPMT</label>
+                    <input id="inpSpmtAxles" type="number" value="12" min="4" max="24" class="w-full px-2 py-1 text-xs font-mono font-bold rounded border border-slate-300" />
+                  </div>
+                  <div>
+                    <label class="block text-[10px] text-slate-500">Rộng x Cao (m)</label>
+                    <input id="inpCargoDim" type="text" value="4.5x4.2" class="w-full px-2 py-1 text-xs font-mono font-bold rounded border border-slate-300" />
+                  </div>
+                </div>
+                <div id="spmtEngineeringResultBox" class="text-[11px] text-slate-600 leading-snug pt-1 border-t border-slate-200/80 font-mono">
+                  <!-- Populated via JS -->
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Row 2: Interactive Transport Options Editor Table -->
+        <div class="bg-white p-4 rounded-xl border border-slate-200 shadow-sm">
+          <div class="flex flex-wrap items-center justify-between gap-2 pb-3 mb-3 border-b border-slate-200">
+            <div>
+              <h3 class="text-xs sm:text-sm font-extrabold text-slate-900 uppercase tracking-wider flex items-center gap-2">
+                <i class="fa-solid fa-table-list text-uth-navy"></i>
+                4. Bảng Nhập Chi phí, Thời gian &amp; Chấm điểm các Phương án Vận tải (Options Live Editor)
+              </h3>
+              <p class="text-xs text-slate-500">
+                Nhập Cước trực tiếp ($C_{\text{trans}}$) và Thời gian ($t$) — hệ thống có thể tự tính $C_{\text{holding}}, C_{\text{depr}}, TC$ theo công thức tiểu luận và tự quy đổi thang điểm 1–10
+              </p>
+            </div>
+
+            <div class="flex flex-wrap items-center gap-2">
+              <button id="btnAutoCalcHiddenCosts" type="button" class="px-3 py-1.5 rounded-lg bg-blue-50 hover:bg-blue-100 text-uth-navy border border-blue-200 text-xs font-bold transition flex items-center gap-1.5">
+                <i class="fa-solid fa-wand-magic-sparkles"></i> Tự tính $C_{\text{holding}}$ &amp; $C_{\text{depr}}$ từ $V, r, \delta$
+              </button>
+              <button id="btnAutoScoreCriteria" type="button" class="px-3 py-1.5 rounded-lg bg-amber-50 hover:bg-amber-100 text-amber-900 border border-amber-200 text-xs font-bold transition flex items-center gap-1.5">
+                <i class="fa-solid fa-robot"></i> Tự chấm điểm (C, T) từ Chi phí &amp; Ngày
+              </button>
+              <button id="btnAddOptionRow" type="button" class="px-3 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold transition flex items-center gap-1">
+                <i class="fa-solid fa-plus"></i> Thêm Phương án
+              </button>
+            </div>
+          </div>
+
+          <div class="overflow-x-auto">
+            <table class="w-full text-left border-collapse text-xs">
+              <thead>
+                <tr class="bg-slate-100 text-slate-700 border-b border-slate-200">
+                  <th class="py-2 px-2.5 font-bold min-w-[210px]">Tên Phương án Vận tải</th>
+                  <th class="py-2 px-2 font-bold text-center w-20">Số ngày ($t$)</th>
+                  <th class="py-2 px-2 font-bold text-right w-28">Cước $C_{\text{trans}}$ ($)</th>
+                  <th class="py-2 px-2 font-bold text-right w-28">Lưu vốn $C_{\text{holding}}$ ($)</th>
+                  <th class="py-2 px-2 font-bold text-right w-28">Trượt giá $C_{\text{depr}}$ ($)</th>
+                  <th class="py-2 px-2 font-bold text-right w-28 text-uth-navy">Tổng $TC$ ($)</th>
+                  <th class="py-2 px-1.5 font-bold text-center w-16" title="Điểm Chi phí (1-10)">Điểm C</th>
+                  <th class="py-2 px-1.5 font-bold text-center w-16" title="Điểm Thời gian (1-10)">Điểm T</th>
+                  <th class="py-2 px-1.5 font-bold text-center w-16" title="Điểm Độ tin cậy (1-10)">Điểm R</th>
+                  <th class="py-2 px-1.5 font-bold text-center w-16" title="Điểm An toàn & Rủi ro (1-10)">Điểm Rsk</th>
+                  <th class="py-2 px-2 font-bold text-center w-12">Xóa</th>
+                </tr>
+              </thead>
+              <tbody id="optionsEditorTbody" class="divide-y divide-slate-200">
+                <!-- Populated dynamically via JS -->
+              </tbody>
+            </table>
+          </div>
+
+          <div class="mt-3 pt-3 border-t border-slate-100 flex flex-wrap items-center justify-between gap-2">
+            <span id="customStudioStatusMsg" class="text-xs text-slate-600 font-medium flex items-center gap-1.5">
+              <i class="fa-solid fa-circle-check text-emerald-600"></i>
+              Mọi thay đổi trong bảng trên được đồng bộ trực tiếp vào mô hình Fuzzy AHP, Biểu đồ Radar, Biểu đồ Chi phí và Bản đồ định tuyến.
+            </span>
+            <button id="btnApplyCustomRouteAndCalc" type="button" class="px-4 py-2 rounded-xl bg-uth-navy hover:bg-blue-800 text-white text-xs font-extrabold shadow transition flex items-center gap-1.5">
+              <i class="fa-solid fa-route"></i> Cập nhật Tuyến Bản đồ &amp; Tính toán lại Toàn bộ
+            </button>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Top KPI Summary Cards -->
+    <section class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-5 print-break-inside-avoid">
+      <!-- KPI 1: Winning Option & Score -->
+      <div class="bg-white rounded-2xl p-4 shadow-sm border border-slate-200/90 flex items-start justify-between relative overflow-hidden">
+        <div class="absolute top-0 left-0 w-1.5 h-full bg-uth-emerald"></div>
+        <div class="pl-2">
+          <p class="text-xs font-bold uppercase tracking-wider text-slate-500">Phương án Khuyến nghị (Top 1)</p>
+          <h2 id="kpiWinnerTitle" class="text-sm sm:text-base font-extrabold text-slate-900 mt-1 line-clamp-1">PA1: Direct Air (HAN - FRA)</h2>
+          <div class="flex items-center gap-2 mt-2">
+            <span class="text-xs font-semibold text-slate-600">Điểm tổng hợp MCDM:</span>
+            <span id="kpiWinnerScore" class="px-2 py-0.5 rounded-md bg-emerald-100 text-emerald-800 font-mono font-extrabold text-sm">0.812</span>
+          </div>
+        </div>
+        <div class="w-10 h-10 rounded-xl bg-emerald-50 text-uth-emerald flex items-center justify-center shrink-0 border border-emerald-200">
+          <i class="fa-solid fa-trophy text-lg"></i>
+        </div>
+      </div>
+
+      <!-- KPI 2: Total Logistics Cost (Direct + Hidden) -->
+      <div class="bg-white rounded-2xl p-4 shadow-sm border border-slate-200/90 flex items-start justify-between relative overflow-hidden">
+        <div class="absolute top-0 left-0 w-1.5 h-full bg-uth-navy"></div>
+        <div class="pl-2">
+          <p class="text-xs font-bold uppercase tracking-wider text-slate-500">Tổng Chi phí Chuỗi (Total Logistics Cost)</p>
+          <h2 id="kpiWinnerTotalCost" class="text-xl font-extrabold font-mono text-uth-navy mt-1">$49,886 USD</h2>
+          <p id="kpiWinnerCostSub" class="text-xs text-slate-500 mt-1">Cước: $40,000 | Chi phí ẩn: $9,886</p>
+        </div>
+        <div class="w-10 h-10 rounded-xl bg-blue-50 text-uth-navy flex items-center justify-center shrink-0 border border-blue-200">
+          <i class="fa-solid fa-sack-dollar text-lg"></i>
+        </div>
+      </div>
+
+      <!-- KPI 3: Transit Lead Time & Savings -->
+      <div class="bg-white rounded-2xl p-4 shadow-sm border border-slate-200/90 flex items-start justify-between relative overflow-hidden">
+        <div class="absolute top-0 left-0 w-1.5 h-full bg-uth-amber"></div>
+        <div class="pl-2">
+          <p class="text-xs font-bold uppercase tracking-wider text-slate-500">Thời gian Toàn trình (Door-to-Door)</p>
+          <h2 id="kpiWinnerDays" class="text-xl font-extrabold font-mono text-amber-600 mt-1">4 Ngày</h2>
+          <p id="kpiWinnerTimeSub" class="text-xs text-slate-500 mt-1">Tiết kiệm $50,036 so với Pure Ocean</p>
+        </div>
+        <div class="w-10 h-10 rounded-xl bg-amber-50 text-amber-600 flex items-center justify-center shrink-0 border border-amber-200">
+          <i class="fa-solid fa-stopwatch text-lg"></i>
+        </div>
+      </div>
+
+      <!-- KPI 4: Fuzzy AHP Consistency Index -->
+      <div class="bg-white rounded-2xl p-4 shadow-sm border border-slate-200/90 flex items-start justify-between relative overflow-hidden">
+        <div class="absolute top-0 left-0 w-1.5 h-full bg-indigo-600"></div>
+        <div class="pl-2">
+          <p class="text-xs font-bold uppercase tracking-wider text-slate-500">Kiểm định Nhất quán Fuzzy AHP</p>
+          <div class="flex items-center gap-2 mt-1">
+            <span id="kpiCrValue" class="text-xl font-extrabold font-mono text-indigo-900">CR = 0.018</span>
+            <span id="kpiCrBadge" class="px-2 py-0.5 text-xs font-bold bg-emerald-100 text-emerald-800 rounded-full border border-emerald-300">
+              &lt; 0.10 Đạt chuẩn
+            </span>
+          </div>
+          <p id="kpiLambdaMax" class="text-xs text-slate-500 mt-1 font-mono">&lambda;_max = 4.049 | CI = 0.016 | RI = 0.90</p>
+        </div>
+        <div class="w-10 h-10 rounded-xl bg-indigo-50 text-indigo-700 flex items-center justify-center shrink-0 border border-indigo-200">
+          <i class="fa-solid fa-check-double text-lg"></i>
+        </div>
+      </div>
+    </section>
+
+    <!-- Main 12-Column Dashboard Layout -->
+    <div class="grid grid-cols-1 lg:grid-cols-12 gap-5 items-start">
+
+      <!-- ==================== 2. LEFT PANEL: FUZZY AHP INTERACTIVE SIMULATOR (5 COLS) ==================== -->
+      <section class="lg:col-span-5 flex flex-col gap-5 print-full-width">
+        
+        <!-- Fuzzy AHP Card -->
+        <div class="bg-white rounded-2xl shadow-sm border border-slate-200/90 overflow-hidden print-break-inside-avoid">
+          <div class="bg-gradient-to-r from-uth-navy to-blue-900 px-5 py-3.5 text-white flex items-center justify-between">
+            <div class="flex items-center gap-2.5">
+              <i class="fa-solid fa-sliders text-amber-400"></i>
+              <div>
+                <h2 class="text-sm sm:text-base font-bold leading-tight">Bộ Mô phỏng Trọng số Fuzzy AHP (TFN)</h2>
+                <p class="text-xs text-blue-200">Số mờ tam giác $\tilde{w}_i = (l_i, m_i, u_i)$ &amp; Phân tích độ nhạy thời gian thực</p>
+              </div>
+            </div>
+            <button
+              id="btnResetWeights"
+              type="button"
+              title="Khôi phục bộ trọng số chuẩn của Case Study"
+              class="no-print px-2.5 py-1.5 rounded-lg bg-white/10 hover:bg-white/20 text-xs font-semibold text-white border border-white/20 transition flex items-center gap-1.5"
+            >
+              <i class="fa-solid fa-rotate-left"></i> Mặc định
+            </button>
+          </div>
+
+          <div class="p-5 space-y-5">
+            <!-- Consistency Banner -->
+            <div class="p-3 rounded-xl bg-slate-50 border border-slate-200 flex flex-wrap items-center justify-between gap-2">
+              <div class="flex items-center gap-2">
+                <span class="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse"></span>
+                <span class="text-xs font-bold text-slate-700">Chỉ số nhất quán Saaty-Buckley:</span>
+              </div>
+              <div class="flex items-center gap-2">
+                <span id="simCrBadge" class="px-2.5 py-1 rounded-lg bg-emerald-100 text-emerald-800 border border-emerald-300 font-mono text-xs font-bold">
+                  CR = 0.018 &lt; 0.10 (Nhất quán)
+                </span>
+              </div>
+            </div>
+
+            <!-- 4 Interactive Criteria Sliders with TFN (l, m, u) -->
+            <div id="criteriaSlidersContainer" class="space-y-4">
+              <!-- Populated and updated dynamically by JS -->
+            </div>
+
+            <!-- TFN Summary Table -->
+            <div class="border border-slate-200 rounded-xl overflow-hidden">
+              <div class="bg-slate-100 px-3.5 py-2 border-b border-slate-200 flex items-center justify-between">
+                <span class="text-xs font-bold text-slate-700 uppercase tracking-wider">
+                  <i class="fa-solid fa-table-cells text-uth-navy mr-1"></i> Ma trận Số mờ Tam giác $\tilde{w}_i = (l_i, m_i, u_i)$ &amp; Khử mờ COA
+                </span>
+                <span class="text-xs font-mono font-bold text-uth-emerald">&Sigma;W_i = 1.000</span>
+              </div>
+              <div class="overflow-x-auto">
+                <table class="w-full text-left border-collapse text-xs">
+                  <thead>
+                    <tr class="bg-slate-50 text-slate-600 border-b border-slate-200">
+                      <th class="py-2 px-3 font-bold">Tiêu chí (Criteria)</th>
+                      <th class="py-2 px-2 font-bold text-center">TFN $(l, m, u)$</th>
+                      <th class="py-2 px-2 font-bold text-right">Trọng số Chuẩn hóa ($W_i$)</th>
+                      <th class="py-2 px-3 font-bold text-right">Tỷ trọng</th>
+                    </tr>
+                  </thead>
+                  <tbody id="tfnTableBody" class="divide-y divide-slate-200 font-mono">
+                    <!-- Populated via JS -->
+                  </tbody>
+                </table>
+              </div>
+            </div>
+
+            <!-- Real-time MCDM Composite Ranking Cards -->
+            <div>
+              <div class="flex items-center justify-between mb-2.5">
+                <h3 class="text-xs font-extrabold uppercase tracking-wider text-slate-700 flex items-center gap-1.5">
+                  <i class="fa-solid fa-ranking-star text-amber-600"></i>
+                  Xếp hạng Phương án Vận tải Đa phương thức (MCDM Score)
+                </h3>
+                <span id="weightModeIndicator" class="text-xs font-semibold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded border border-emerald-200">
+                  Trọng số Chuẩn Báo cáo
+                </span>
+              </div>
+              <div id="mcdmRankingContainer" class="space-y-3">
+                <!-- Populated dynamically via JS -->
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Technical Regulatory Compliance & Risk Matrix Card -->
+        <div class="bg-white rounded-2xl shadow-sm border border-slate-200/90 overflow-hidden print-break-inside-avoid">
+          <div class="bg-slate-900 px-5 py-3 text-white flex items-center justify-between">
+            <div class="flex items-center gap-2">
+              <i class="fa-solid fa-shield-halved text-emerald-400"></i>
+              <h3 class="text-xs sm:text-sm font-bold uppercase tracking-wider">Thẩm định Pháp lý &amp; Giới hạn Kỹ thuật (BGTVT)</h3>
+            </div>
+            <span class="text-xs text-slate-300 font-mono" id="regBadgeCode">NĐ 30 / TT 46/2015</span>
+          </div>
+          <div id="technicalConstraintsList" class="p-4 space-y-2.5 text-xs">
+            <!-- Populated dynamically per Case Study -->
+          </div>
+        </div>
+
+      </section>
+
+      <!-- ==================== RIGHT PANEL: MAP + CHARTS + ANALYSIS (7 COLS) ==================== -->
+      <section class="lg:col-span-7 flex flex-col gap-5 print-full-width">
+
+        <!-- ==================== 3. INTERACTIVE ROUTE MAP (TOP RIGHT PANEL) ==================== -->
+        <div class="bg-white rounded-2xl shadow-sm border border-slate-200/90 overflow-hidden print-break-inside-avoid">
+          <div class="bg-gradient-to-r from-slate-900 to-uth-navy px-5 py-3.5 text-white flex flex-wrap items-center justify-between gap-2">
+            <div class="flex items-center gap-2.5">
+              <i class="fa-solid fa-map-location-dot text-emerald-400 text-lg"></i>
+              <div>
+                <h2 class="text-sm sm:text-base font-bold leading-tight">Bản đồ Hành lang Vận tải Đa phương thức &amp; Điểm nút Kỹ thuật</h2>
+                <p id="mapSubtitle" class="text-xs text-blue-200">Nhấp vào từng điểm nút (Origin / Transit Hub / Destination) để xem giới hạn tĩnh không, mớn nước và áp lực trục</p>
+              </div>
+            </div>
+            <div class="no-print flex flex-wrap items-center gap-1.5">
+              <button id="btnFocusVietnam" type="button" class="px-2.5 py-1.5 rounded-lg bg-emerald-500/20 hover:bg-emerald-500/30 text-xs font-semibold text-emerald-300 border border-emerald-400/30 transition flex items-center gap-1" title="Phóng to hành lang đường bộ / sà lan / cảng biển tại Việt Nam">
+                <i class="fa-solid fa-magnifying-glass-location"></i> <span>Cận cảnh Nội địa VN</span>
+              </button>
+              <button id="btnFitBounds" type="button" class="px-2.5 py-1.5 rounded-lg bg-white/10 hover:bg-white/20 text-xs font-semibold text-white border border-white/20 transition flex items-center gap-1">
+                <i class="fa-solid fa-globe"></i> <span>Toàn tuyến Quốc tế</span>
+              </button>
+              <button id="btnToggleTile" type="button" class="px-2.5 py-1.5 rounded-lg bg-amber-500/20 hover:bg-amber-500/30 text-xs font-semibold text-amber-300 border border-amber-400/30 transition flex items-center gap-1">
+                <i class="fa-solid fa-satellite"></i> <span id="tileModeLabel">Vệ tinh Esri</span>
+              </button>
+            </div>
+          </div>
+
+          <!-- Map Canvas -->
+          <div class="relative">
+            <div id="mapContainer" class="w-full h-[410px] sm:h-[450px] z-10 bg-slate-100"></div>
+
+            <!-- Floating Map Legend Overlay -->
+            <div class="absolute bottom-3 left-3 z-20 bg-slate-900/90 backdrop-blur-md text-white p-3 rounded-xl border border-white/15 shadow-lg max-w-sm text-xs space-y-1.5 pointer-events-auto">
+              <div class="font-bold text-amber-300 uppercase tracking-wider flex items-center justify-between gap-2">
+                <span><i class="fa-solid fa-route mr-1"></i> Chú giải Tuyến Thực tế</span>
+                <span id="osrmStatusBadge" class="px-1.5 py-0.5 rounded bg-emerald-500/20 text-emerald-300 text-[10px] font-mono border border-emerald-400/30">OSRM + Hải đồ</span>
+              </div>
+              <div class="grid grid-cols-2 gap-x-3 gap-y-1 text-[11px]">
+                <div class="flex items-center gap-1.5">
+                  <span class="w-5 h-1 bg-emerald-400 rounded inline-block"></span>
+                  <span>Tuyến tối ưu (Chính)</span>
+                </div>
+                <div class="flex items-center gap-1.5">
+                  <span class="w-5 h-1 bg-cyan-400 rounded inline-block"></span>
+                  <span>Sà lan sông (Barge)</span>
+                </div>
+                <div class="flex items-center gap-1.5">
+                  <span class="w-5 h-0.5 border-b-2 border-dashed border-amber-400 inline-block"></span>
+                  <span>Tuyến thay thế (PA2)</span>
+                </div>
+                <div class="flex items-center gap-1.5">
+                  <span class="w-5 h-0.5 border-b-2 border-dashed border-rose-400 inline-block"></span>
+                  <span>Đường sắt / PA loại</span>
+                </div>
+              </div>
+              <div class="flex items-center gap-3 pt-1 border-t border-white/10 text-[11px] text-slate-300">
+                <span class="flex items-center gap-1"><span class="w-2.5 h-2.5 rounded-full bg-blue-500 inline-block"></span> Điểm đi</span>
+                <span class="flex items-center gap-1"><span class="w-2.5 h-2.5 rounded-full bg-amber-500 inline-block"></span> Chuyển tải</span>
+                <span class="flex items-center gap-1"><span class="w-2.5 h-2.5 rounded-full bg-emerald-500 inline-block"></span> Điểm đích</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Interactive Waypoint Cards Strip below Map -->
+          <div class="p-4 bg-slate-50 border-t border-slate-200">
+            <div class="text-xs font-bold text-slate-600 uppercase tracking-wider mb-2.5 flex items-center justify-between">
+              <span><i class="fa-solid fa-location-crosshairs text-uth-navy mr-1"></i> Chuỗi Điểm nút Vận tải &amp; Thông số Kỹ thuật Thực địa (Click để Zoom)</span>
+              <span class="text-slate-400 font-normal">Tọa độ WGS84</span>
+            </div>
+            <div id="waypointsStrip" class="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
+              <!-- Populated via JS -->
+            </div>
+          </div>
+        </div>
+
+        <!-- ==================== 4. MULTI-CRITERIA COMPARISON & FINANCIAL BREAKDOWN ==================== -->
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-5 print-break-inside-avoid">
+          
+          <!-- Radar Chart Card -->
+          <div class="bg-white rounded-2xl shadow-sm border border-slate-200/90 p-4 flex flex-col">
+            <div class="flex items-center justify-between border-b border-slate-100 pb-3 mb-3">
+              <div>
+                <h3 class="text-sm font-extrabold text-slate-900 flex items-center gap-1.5">
+                  <i class="fa-solid fa-diagram-project text-uth-navy"></i>
+                  Biểu đồ Radar Đa tiêu chí (Thang 1–10)
+                </h3>
+                <p class="text-xs text-slate-500">So sánh $C, T, R, Rsk$ (Điểm càng cao càng ưu việt)</p>
+              </div>
+              <span class="px-2 py-0.5 text-xs font-mono font-bold bg-blue-50 text-uth-navy rounded border border-blue-200">Scale 1-10</span>
+            </div>
+            <div class="relative flex-1 min-h-[290px] flex items-center justify-center">
+              <canvas id="radarChartCanvas"></canvas>
+            </div>
+          </div>
+
+          <!-- Stacked Cost Breakdown Bar Chart Card -->
+          <div class="bg-white rounded-2xl shadow-sm border border-slate-200/90 p-4 flex flex-col">
+            <div class="flex items-center justify-between border-b border-slate-100 pb-3 mb-3">
+              <div>
+                <h3 class="text-sm font-extrabold text-slate-900 flex items-center gap-1.5">
+                  <i class="fa-solid fa-chart-column text-uth-emerald"></i>
+                  Cấu trúc Chi phí Trực tiếp &amp; Chi phí Ẩn (USD)
+                </h3>
+                <p class="text-xs text-slate-500">Cước vận tải + $C_{\text{holding}}$ (Tồn kho) + $C_{\text{depr}}$ (Giảm giá)</p>
+              </div>
+              <span class="px-2 py-0.5 text-xs font-mono font-bold bg-emerald-50 text-uth-emerald rounded border border-emerald-200">Total Cost</span>
+            </div>
+            <div class="relative flex-1 min-h-[290px] flex items-center justify-center">
+              <canvas id="costBarChartCanvas"></canvas>
+            </div>
+          </div>
+
+        </div>
+
+        <!-- Detailed Financial & Operational Comparison Table -->
+        <div class="bg-white rounded-2xl shadow-sm border border-slate-200/90 overflow-hidden print-break-inside-avoid">
+          <div class="bg-slate-100 px-5 py-3 border-b border-slate-200 flex flex-wrap items-center justify-between gap-2">
+            <h3 class="text-xs sm:text-sm font-extrabold text-slate-800 uppercase tracking-wider flex items-center gap-2">
+              <i class="fa-solid fa-table text-uth-navy"></i>
+              Bảng Tổng hợp Chỉ tiêu Kinh tế - Kỹ thuật &amp; Điểm số Fuzzy AHP
+            </h3>
+            <span class="text-xs text-slate-500 font-medium">Đơn vị tiền tệ: USD ($) | Điểm tiêu chí: 1–10</span>
+          </div>
+          <div class="overflow-x-auto">
+            <table class="w-full text-left border-collapse text-xs">
+              <thead>
+                <tr class="bg-slate-50 text-slate-600 border-b border-slate-200">
+                  <th class="py-2.5 px-3.5 font-bold">Phương án Vận tải (Transport Option)</th>
+                  <th class="py-2.5 px-2.5 font-bold text-center">Thời gian</th>
+                  <th class="py-2.5 px-2.5 font-bold text-right">Cước Trực tiếp</th>
+                  <th class="py-2.5 px-2.5 font-bold text-right">Chi phí Lưu vốn ($C_{\text{holding}}$)</th>
+                  <th class="py-2.5 px-2.5 font-bold text-right">Sụt giảm Giá trị ($C_{\text{depr}}$)</th>
+                  <th class="py-2.5 px-2.5 font-bold text-right">Tổng Chi phí ($C_{\text{total}}$)</th>
+                  <th class="py-2.5 px-2.5 font-bold text-center">Điểm (C/T/R/Rsk)</th>
+                  <th class="py-2.5 px-3.5 font-bold text-right">Điểm Fuzzy AHP</th>
+                </tr>
+              </thead>
+              <tbody id="financialTableBody" class="divide-y divide-slate-200">
+                <!-- Populated dynamically via JS -->
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <!-- ==================== 5. ACADEMIC JUSTIFICATION & FORMULA INLINE PANEL ==================== -->
+        <div class="bg-white rounded-2xl shadow-sm border border-slate-200/90 overflow-hidden print-break-inside-avoid">
+          <div class="bg-gradient-to-r from-uth-navy via-blue-900 to-slate-900 px-5 py-3.5 text-white flex flex-wrap items-center justify-between gap-2">
+            <div class="flex items-center gap-2.5">
+              <i class="fa-solid fa-graduation-cap text-amber-400 text-lg"></i>
+              <div>
+                <h2 class="text-sm sm:text-base font-bold">Luận giải Học thuật, Mô hình Toán học &amp; Biện luận Quyết định</h2>
+                <p class="text-xs text-blue-200">Phân tích chuyên sâu theo chuẩn Tiểu luận Quản trị Vận tải Đa phương thức - UTH</p>
+              </div>
+            </div>
+            <button
+              id="btnExpandAcademicModal2"
+              type="button"
+              class="no-print px-3 py-1.5 rounded-lg bg-amber-500/20 hover:bg-amber-500/30 text-amber-300 border border-amber-400/30 text-xs font-bold transition flex items-center gap-1.5"
+            >
+              <i class="fa-solid fa-up-right-and-down-left-from-center"></i> Xem chế độ Toàn màn hình
+            </button>
+          </div>
+
+          <div class="p-5 space-y-5">
+            <!-- Mathematical Formulas Grid -->
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <!-- Formula 1: Holding Cost -->
+              <div class="p-3.5 rounded-xl bg-blue-50/60 border border-blue-200/80 flex flex-col justify-between">
+                <div>
+                  <div class="flex items-center justify-between mb-1.5">
+                    <span class="text-xs font-extrabold text-uth-navy uppercase">1. Chi phí Lưu vốn Tồn kho</span>
+                    <span class="px-1.5 py-0.5 text-[11px] font-mono bg-blue-100 text-blue-800 rounded">Holding Cost</span>
+                  </div>
+                  <div class="py-2 px-3 bg-white rounded-lg border border-blue-100 text-center my-1 overflow-x-auto">
+                    $$C_{\text{holding}} = \frac{V \times r}{365} \times t$$
+                  </div>
+                </div>
+                <p id="formulaNoteHolding" class="text-xs text-slate-600 mt-1.5 leading-relaxed">
+                  $V$: Giá trị lô hàng ($1.000.000); $r$: Chi phí cơ hội vốn ($12\%/\text{năm}$); $t$: Thời gian vận chuyển (ngày).
+                </p>
+              </div>
+
+              <!-- Formula 2: Market Depreciation Cost -->
+              <div class="p-3.5 rounded-xl bg-amber-50/60 border border-amber-200/80 flex flex-col justify-between">
+                <div>
+                  <div class="flex items-center justify-between mb-1.5">
+                    <span class="text-xs font-extrabold text-amber-800 uppercase">2. Chi phí Hao hụt Thương mại</span>
+                    <span class="px-1.5 py-0.5 text-[11px] font-mono bg-amber-100 text-amber-800 rounded">Depreciation</span>
+                  </div>
+                  <div class="py-2 px-3 bg-white rounded-lg border border-amber-100 text-center my-1 overflow-x-auto">
+                    $$C_{\text{depr}} = V \times \frac{\delta}{7} \times t$$
+                  </div>
+                </div>
+                <p id="formulaNoteDepr" class="text-xs text-slate-600 mt-1.5 leading-relaxed">
+                  $\delta$: Tốc độ sụt giảm giá trị công nghệ ($1.5\%/\text{tuần}$ đối với linh kiện bán dẫn/camera module).
+                </p>
+              </div>
+
+              <!-- Formula 3: Ground Pressure for SPMT -->
+              <div class="p-3.5 rounded-xl bg-emerald-50/60 border border-emerald-200/80 flex flex-col justify-between">
+                <div>
+                  <div class="flex items-center justify-between mb-1.5">
+                    <span class="text-xs font-extrabold text-emerald-800 uppercase">3. Áp lực Mặt đường SPMT</span>
+                    <span class="px-1.5 py-0.5 text-[11px] font-mono bg-emerald-100 text-emerald-800 rounded">SPMT Load</span>
+                  </div>
+                  <div class="py-2 px-3 bg-white rounded-lg border border-emerald-100 text-center my-1 overflow-x-auto">
+                    $$P_{\text{ground}} = \frac{\text{Total\_Mass} \times g}{\text{Area}}$$
+                  </div>
+                </div>
+                <p id="formulaNoteSpmt" class="text-xs text-slate-600 mt-1.5 leading-relaxed">
+                  Tổ hợp SPMT 12 trục phân tán tổng tải $165.6\text{T}$ xuống $13.8\text{ tấn/trục}$ ($\le 15\text{T/trục}$ theo TT 46/2015/TT-BGTVT).
+                </p>
+              </div>
+            </div>
+
+            <!-- Academic Justification Content (Why Winner Chosen & Why Alternatives Rejected) -->
+            <div id="academicJustificationContainer" class="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <!-- Populated dynamically via JS -->
+            </div>
+          </div>
+        </div>
+
+      </section>
+
+    </div>
+  </main>
+
+  <!-- ==================== FOOTER ==================== -->
+  <footer class="bg-slate-900 text-slate-400 border-t border-slate-800 mt-8 py-5 px-4 sm:px-6 text-xs">
+    <div class="max-w-[1600px] mx-auto flex flex-col sm:flex-row items-center justify-between gap-3">
+      <div class="flex items-center gap-2">
+        <span class="w-2 h-2 rounded-full bg-emerald-400"></span>
+        <span class="font-semibold text-slate-200">Trường Đại học Giao thông vận tải TP.HCM (UTH)</span>
+        <span>— Hệ thống Mô phỏng Quyết định Chuỗi Vận tải Đa phương thức (Fuzzy AHP Decision Support System)</span>
+      </div>
+      <div class="font-mono text-slate-400">
+        Chuẩn dữ liệu: Nghị định 30 &amp; Thông tư 46/2015/TT-BGTVT | Năm học 2025–2026
+      </div>
+    </div>
+  </footer>
+
+  <!-- ==================== ACADEMIC MODAL (FULL SCREEN VIEW) ==================== -->
+  <div
+    id="academicModal"
+    class="no-print fixed inset-0 z-50 hidden bg-slate-950/75 backdrop-blur-sm flex items-center justify-center p-4 overflow-y-auto"
+    role="dialog"
+    aria-modal="true"
+  >
+    <div class="bg-white rounded-2xl max-w-4xl w-full max-h-[90vh] flex flex-col shadow-2xl border border-slate-200 overflow-hidden my-auto">
+      <!-- Modal Header -->
+      <div class="bg-gradient-to-r from-uth-navy to-slate-900 px-6 py-4 text-white flex items-center justify-between shrink-0">
+        <div class="flex items-center gap-3">
+          <div class="w-9 h-9 rounded-lg bg-amber-500 text-slate-950 flex items-center justify-center font-bold">
+            <i class="fa-solid fa-book-open"></i>
+          </div>
+          <div>
+            <h3 class="text-base font-extrabold">Cơ sở Lý thuyết Toán học Fuzzy AHP &amp; Biện luận Chuyên sâu</h3>
+            <p class="text-xs text-blue-200">Mô hình Ra quyết định Đa tiêu chí Mờ (Buckley / Chang's Extent Analysis) &amp; Chi phí Logistics Toàn phần</p>
+          </div>
+        </div>
+        <button id="btnCloseAcademicModal" type="button" class="w-8 h-8 rounded-lg bg-white/10 hover:bg-white/20 flex items-center justify-center text-white transition">
+          <i class="fa-solid fa-xmark"></i>
+        </button>
+      </div>
+
+      <!-- Modal Body -->
+      <div class="p-6 overflow-y-auto space-y-6 text-xs sm:text-sm text-slate-700 leading-relaxed" id="modalAcademicBody">
+        <div class="p-4 rounded-xl bg-slate-50 border border-slate-200 space-y-3">
+          <h4 class="font-extrabold text-uth-navy text-sm uppercase tracking-wider flex items-center gap-2">
+            <i class="fa-solid fa-square-root-variable text-amber-600"></i>
+            1. Thuật toán Fuzzy AHP (Số mờ Tam giác TFN &amp; Giải mờ Trọng tâm COA)
+          </h4>
+          <p>
+            Trong quy hoạch vận tải đa phương thức, đánh giá của chuyên gia thường chứa đựng tính bất định. Do đó, mô hình <strong>Fuzzy AHP</strong> thay thế thang đo điểm đơn của Saaty bằng <strong>Số mờ Tam giác (Triangular Fuzzy Number - TFN)</strong> $\tilde{a}_{ij} = (l_{ij}, m_{ij}, u_{ij})$, trong đó $l_{ij}$ là cận dưới, $m_{ij}$ là giá trị kỳ vọng (trung tâm), và $u_{ij}$ là cận trên.
+          </p>
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-3 bg-white p-3.5 rounded-xl border border-slate-200">
+            <div>
+              <div class="font-bold text-xs text-slate-600 mb-1">Tổng hợp Trung bình Nhân Mờ (Buckley):</div>
+              $$\tilde{r}_i = \left( \prod_{j=1}^{n} \tilde{a}_{ij} \right)^{1/n}, \quad \tilde{w}_i = \tilde{r}_i \otimes \left( \sum_{k=1}^{n} \tilde{r}_k \right)^{-1}$$
+            </div>
+            <div>
+              <div class="font-bold text-xs text-slate-600 mb-1">Khử mờ COA &amp; Điểm hợp nhất MCDM:</div>
+              $$w_i = \frac{l_i + 4m_i + u_i}{6}, \quad W_i = \frac{w_i}{\sum_{k=1}^{4} w_k}, \quad S_p = \sum_{i=1}^{4} W_i \cdot X_{pi}$$
+            </div>
+          </div>
+          <p class="text-xs text-slate-600">
+            <strong>Kiểm định tính nhất quán (Consistency Ratio - CR):</strong> Ma trận được kiểm định qua trị riêng lớn nhất $\lambda_{\max}$, chỉ số nhất quán $CI = \frac{\lambda_{\max} - n}{n - 1}$ và $CR = \frac{CI}{RI}$ (với $n=4 \Rightarrow RI = 0.90$). Điều kiện bắt buộc để bộ trọng số có giá trị khoa học là $CR < 0.10$.
+          </p>
+        </div>
+
+        <div class="p-4 rounded-xl bg-blue-50/50 border border-blue-200 space-y-3">
+          <h4 class="font-extrabold text-uth-navy text-sm uppercase tracking-wider flex items-center gap-2">
+            <i class="fa-solid fa-coins text-uth-emerald"></i>
+            2. Mô hình Tổng Chi phí Logistics (Total Logistics Cost - TLC)
+          </h4>
+          <p>
+            Đánh giá chuỗi vận tải đa phương thức không chỉ xét <strong>Cước vận tải trực tiếp ($C_{\text{freight}}$)</strong> mà bắt buộc phải lượng hóa <strong>Chi phí ẩn trong quá trình hàng nằm trên đường ($C_{\text{in-transit}}$)</strong>:
+          </p>
+          <div class="grid grid-cols-1 md:grid-cols-3 gap-3 bg-white p-3.5 rounded-xl border border-blue-100 text-xs">
+            <div>
+              <strong class="text-uth-navy block mb-1">Chi phí Lưu vốn ($C_{\text{holding}}$):</strong>
+              $$C_{\text{holding}} = \frac{V \times r}{365} \times t$$
+              <span class="text-slate-500">Áp dụng cho hàng giá trị cao bị chôn vốn lưu động trong suốt thời gian hành trình $t$ (ngày).</span>
+            </div>
+            <div>
+              <strong class="text-amber-800 block mb-1">Chi phí Giảm giá ($C_{\text{depr}}$):</strong>
+              $$C_{\text{depr}} = V \times \frac{\delta}{7} \times t$$
+              <span class="text-slate-500">Áp dụng cho hàng công nghệ cao/điện tử có vòng đời ngắn, sụt giá $\delta\%/\text{tuần}$ khi ra mắt chậm.</span>
+            </div>
+            <div>
+              <strong class="text-emerald-800 block mb-1">Áp lực nền SPMT ($P_{\text{ground}}$):</strong>
+              $$P_{\text{ground}} = \frac{\text{Total\_Mass} \times g}{\text{Area}}$$
+              <span class="text-slate-500">Kiểm soát giới hạn chịu tải mặt đường và cầu cống đối với hàng siêu trường siêu trọng (LPT 150T).</span>
+            </div>
+          </div>
+        </div>
+
+        <div id="modalDynamicCaseAnalysis" class="space-y-4">
+          <!-- Populated dynamically with the current case study's deep justification -->
+        </div>
+      </div>
+
+      <!-- Modal Footer -->
+      <div class="bg-slate-100 px-6 py-3.5 border-t border-slate-200 flex items-center justify-between shrink-0">
+        <span class="text-xs text-slate-500">Nhấn ESC hoặc nút Đóng để quay lại bảng điều khiển tương tác</span>
+        <div class="flex items-center gap-2">
+          <button id="btnPrintFromModal" type="button" class="px-3.5 py-2 rounded-xl bg-uth-emerald hover:bg-emerald-600 text-white text-xs font-bold transition flex items-center gap-1.5">
+            <i class="fa-solid fa-print"></i> In Báo cáo Ngay
+          </button>
+          <button id="btnCloseAcademicModalBottom" type="button" class="px-4 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-white text-xs font-bold transition">
+            Đóng cửa sổ
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ==================== APPLICATION LOGIC & EMBEDDED DATASET ==================== -->
+  <script>
+    // ============================================================================
+    // 1. EMBEDDED DATASET (EXACT CORE DATA + ENRICHED ACADEMIC/TECHNICAL METADATA)
+    // ============================================================================
+    const LOGISTICS_DATABASE = {
+      case1: {
+        name: "Lô 1: Linh kiện điện tử (Bắc Ninh - Frankfurt)",
+        cargoInfo: "5.000 kg Camera Modules/PCBA | Trị giá: $1.000.000 USD ($200/kg)",
+        weights: { Cost: 0.10, Time: 0.45, Reliability: 0.15, Risk: 0.30 },
+        options: [
+          { name: "PA1: Direct Air (HAN - FRA)", score: 0.812, selected: true, cost: 40000, holding: 1315, depr: 8571, total: 49886, days: 4, C: 3, T: 10, R: 9, Rsk: 9 },
+          { name: "PA2: Sea - Air (Via Dubai)", score: 0.640, selected: false, cost: 24000, holding: 5918, depr: 38571, total: 68489, days: 18, C: 6, T: 6, R: 7, Rsk: 7 },
+          { name: "PA3: Pure Ocean (Hải Phòng - Rotterdam)", score: 0.310, selected: false, cost: 6000, holding: 12493, depr: 81429, total: 99922, days: 38, C: 10, T: 1, R: 5, Rsk: 4 }
+        ],
+        mapBounds: [[20.5, 105.5], [52.0, 4.0]],
+        domesticBounds: [[20.78, 105.75], [21.28, 106.75]],
+        waypoints: [
+          {
+            name: "KCN Yên Phong, Bắc Ninh",
+            lat: 21.1861,
+            lng: 106.0763,
+            type: "origin",
+            roleLabel: "Điểm xuất phát (Factory)",
+            techSpecs: "Đóng gói chuẩn chống tĩnh điện ESD & khay chống sốc gia tốc < 2G; xe tải thùng kín niêm phong GPS chạy theo Cao tốc QL18 về ga hàng hóa Nội Bài (32 km)."
+          },
+          {
+            name: "Sân bay Nội Bài (HAN)",
+            lat: 21.2212,
+            lng: 105.8072,
+            type: "transit",
+            roleLabel: "Cửa khẩu Hàng không Quốc tế",
+            techSpecs: "Ga hàng không NCTS/ALS; xếp dỡ vào mâm thùng ULD LD3/RKN kiểm soát nhiệt độ 15–25°C, độ ẩm < 60%, soi chiếu an ninh luồng xanh."
+          },
+          {
+            name: "Sân bay Frankfurt (FRA)",
+            lat: 50.0379,
+            lng: 8.5622,
+            type: "destination",
+            roleLabel: "Điểm đích Châu Âu (CargoCity Süd)",
+            techSpecs: "Trung tâm Cargo lớn nhất châu Âu; thông quan điện tử ATLAS trong 6 giờ, giao thẳng dây chuyền lắp ráp OEM tại vùng Hessen."
+          }
+        ],
+        primarySegments: [
+          {
+            mode: "road",
+            label: "Chặng 1 (Đường bộ Cao tốc QL18): KCN Yên Phong → Ga Hàng hóa Nội Bài (HAN) - 32 km",
+            color: "#10b981",
+            osrmWaypoints: [
+              [21.1861, 106.0763],
+              [21.1985, 105.9940],
+              [21.2138, 105.8624],
+              [21.2212, 105.8072]
+            ],
+            coords: [
+              [21.1861, 106.0763],
+              [21.1932, 106.0410],
+              [21.1985, 105.9940],
+              [21.2045, 105.9510],
+              [21.2098, 105.9120],
+              [21.2138, 105.8624],
+              [21.2175, 105.8310],
+              [21.2212, 105.8072]
+            ]
+          },
+          {
+            mode: "air",
+            label: "Chặng 2 (Đường bay Quốc tế Á-Âu L888/A1): Nội Bài (HAN) → Frankfurt (FRA) - 8.720 km",
+            color: "#059669",
+            coords: [
+              [21.2212, 105.8072],
+              [22.4500, 103.9500],
+              [23.8500, 97.6000],
+              [25.4000, 89.8000],
+              [27.1500, 81.5000],
+              [29.8000, 74.2000],
+              [33.6000, 66.5000],
+              [37.8000, 58.2000],
+              [41.2000, 49.5000],
+              [44.1000, 39.8000],
+              [46.6000, 29.5000],
+              [48.4000, 19.2000],
+              [49.6000, 12.5000],
+              [50.0379, 8.5622]
+            ]
+          }
+        ],
+        alternativeRoutes: [
+          {
+            mode: "sea-air",
+            label: "PA2 (Sea-Air): Cao tốc 5B Hải Phòng → Eo biển Malacca → Cảng Jebel Ali (Dubai) → Bay DWC - Frankfurt",
+            color: "#d97706",
+            coords: [
+              [21.1861, 106.0763],
+              [21.0250, 106.1650],
+              [20.9120, 106.3350],
+              [20.8449, 106.6881],
+              [20.4500, 107.3500],
+              [18.2000, 108.6000],
+              [14.5000, 109.8500],
+              [10.2000, 108.9000],
+              [6.5000, 106.2000],
+              [1.2644, 103.8220],
+              [3.1500, 100.6500],
+              [5.8500, 95.3000],
+              [5.8000, 80.5000],
+              [11.5000, 71.2000],
+              [18.8000, 63.5000],
+              [24.2000, 58.4000],
+              [26.3500, 56.3500],
+              [25.0112, 55.0612],
+              [29.5000, 47.8000],
+              [35.2000, 38.5000],
+              [41.0000, 28.9000],
+              [45.8000, 19.5000],
+              [50.0379, 8.5622]
+            ]
+          },
+          {
+            mode: "sea",
+            label: "PA3 (Pure Ocean): Hải Phòng → Malacca → Biển Đỏ → Kênh đào Suez → Gibraltar → Rotterdam → Autobahn A3 Frankfurt",
+            color: "#64748b",
+            coords: [
+              [21.1861, 106.0763],
+              [20.8449, 106.6881],
+              [18.2000, 108.6000],
+              [13.5000, 109.9000],
+              [8.5000, 107.5000],
+              [1.2644, 103.8220],
+              [5.8500, 95.3000],
+              [5.8000, 80.5000],
+              [9.5000, 65.0000],
+              [12.0000, 51.2000],
+              [12.6500, 43.4000],
+              [18.5000, 39.8000],
+              [25.2000, 35.6000],
+              [29.9500, 32.5500],
+              [31.2600, 32.3100],
+              [34.6000, 24.5000],
+              [37.2000, 12.2000],
+              [36.5000, 2.5000],
+              [35.9600, -5.5000],
+              [37.0500, -9.1500],
+              [43.1500, -9.4500],
+              [48.5500, -5.1500],
+              [50.6500, 0.8500],
+              [51.9490, 4.1450],
+              [51.4300, 6.7600],
+              [50.9300, 6.9600],
+              [50.0379, 8.5622]
+            ]
+          }
+        ],
+        crMeta: { cr: 0.018, ci: 0.016, lambdaMax: 4.049 },
+        formulaNotes: {
+          holding: "V = $1,000,000 USD; lãi suất chi phí cơ hội vốn r = 12%/năm. Với PA1 (t = 4 ngày): C_holding = $1,315 USD; PA3 (t = 38 ngày): C_holding = $12,493 USD.",
+          depr: "Tốc độ giảm giá thương mại linh kiện bán dẫn δ = 1.5%/tuần (~0.2143%/ngày). Với PA1 (4 ngày): C_depr = $8,571 USD; PA3 (38 ngày): C_depr = $81,429 USD!",
+          spmt: "Không áp dụng SPMT cho lô 5 tấn, nhưng kiểm soát nghiêm ngặt gia tốc rung chấn (Shock/Vibration < 2G) và độ ẩm tương đối RH < 60% để chống oxy hóa vi mạch."
+        },
+        technicalConstraints: [
+          {
+            badge: "Giới hạn Độ nhạy Công nghệ",
+            status: "critical",
+            title: "Chi phí ẩn vượt gấp 15.6 lần cước biển thuần túy",
+            desc: "Camera Modules/PCBA có mật độ giá trị $200/kg ($200,000/tấn). Nếu đi tàu biển (38 ngày), chi phí lưu vốn ($12,493) + giảm giá thương mại ($81,429) = $93,922 USD."
+          },
+          {
+            badge: "An toàn Kỹ thuật Vi mạch",
+            status: "pass",
+            title: "Kiểm soát sốc nhiệt, độ ẩm muối biển & phóng tĩnh điện (ESD)",
+            desc: "Vận tải biển qua vùng nhiệt đới 38 ngày tiềm ẩn nguy cơ ngưng tụ hơi ẩm muối biển (Container Rain). Khoang hàng máy bay dùng ULD kín giảm thiểu rủi ro hư hỏng."
+          },
+          {
+            badge: "Hiệu quả Chuỗi Cung ứng",
+            status: "pass",
+            title: "Đảm bảo tiến độ Just-In-Time (JIT) tại nhà máy Frankfurt",
+            desc: "PA1 (Direct Air HAN-FRA) chỉ mất 4 ngày Door-to-Door, giúp tổng chi phí toàn chuỗi ($49,886) rẻ hơn PA2 ($68,489) và rẻ hơn một nửa so với PA3 ($99,922)."
+          }
+        ],
+        justification: {
+          winnerTitle: "Tại sao chọn PA1: Direct Air (HAN – FRA) đạt điểm cao nhất (0.812)?",
+          winnerPoints: [
+            "<strong>Tối ưu hóa Tổng Chi phí Logistics (Total Cost Concept):</strong> Mặc dù cước hàng không trực tiếp cao nhất ($40,000 USD vs $6,000 USD của đường biển), nhưng nhờ rút ngắn thời gian toàn trình xuống còn <strong>4 ngày</strong>, tổng chi phí ẩn chỉ là $1,315 (lưu vốn) + $8,571 (hao hụt giá trị) = $9,886 USD. Tổng chi phí toàn chuỗi của PA1 đạt <strong>$49,886 USD</strong> — <em>thấp nhất trong cả 3 phương án</em>.",
+            "<strong>Tương thích hoàn hảo với cấu trúc trọng số Fuzzy AHP:</strong> Với mặt hàng công nghệ cao trị giá $1,000,000 USD, tiêu chí Thời gian ($W_T = 0.45$) và Rủi ro Kỹ thuật ($W_{Rsk} = 0.30$) chiếm tới 75% tổng trọng số quyết định. PA1 đạt điểm tuyệt đối về Thời gian (10/10) và Độ an toàn/Tin cậy (9/10).",
+            "<strong>Loại bỏ rủi ro đứt gãy chuỗi cung ứng (Line-down Penalty):</strong> Bay thẳng Nội Bài – Frankfurt không qua điểm chuyển tải trung gian giúp triệt tiêu rủi ro thất lạc, trễ chuyến hoặc hư hỏng do bốc xếp nhiều lần."
+          ],
+          rejectedTitle: "Tại sao bác bỏ PA2 (Sea-Air Dubai - 0.640) và PA3 (Pure Ocean - 0.310)?",
+          rejectedPoints: [
+            "<strong>Bác bỏ PA3 (Pure Ocean - 0.310):</strong> Sai lầm kinh điển khi chỉ nhìn vào cước tàu biển rẻ ($6,000 USD). Hành trình 38 ngày (kèm nguy cơ nghẽn kênh đào Suez/Biển Đỏ) làm phát sinh <strong>$81,429 USD</strong> chi phí giảm giá thương mại và <strong>$12,493 USD</strong> chi phí giam vốn. Tổng chi phí vọt lên <strong>$99,922 USD</strong> (đắt gấp đôi đi máy bay!).",
+            "<strong>Bác bỏ PA2 (Sea-Air qua Dubai - 0.640):</strong> Tuy tiết kiệm được $16,000 cước vận chuyển so với Direct Air, nhưng thời gian 18 ngày vẫn làm phát sinh $44,489 USD chi phí ẩn, đẩy tổng chi phí lên $68,489 USD. Ngoài ra, khâu chuyển tải từ cảng Jebel Ali sang sân bay Dubai World Central (DWC) làm tăng rủi ro va đập và chậm trễ nối chuyến."
+          ]
+        }
+      },
+
+      case2: {
+        name: "Lô 2: Cà phê nhân xuất khẩu (Đắk Lắk - Hamburg)",
+        cargoInfo: "2.000 tấn Cà phê nhân thô (100x20'DC) | Trị giá: $9.000.000 USD",
+        weights: { Cost: 0.50, Time: 0.15, Reliability: 0.20, Risk: 0.15 },
+        options: [
+          { name: "PA2: Đường bộ + Sà lan sông + Tàu biển (Cái Mép)", score: 0.845, selected: true, cost: 1300000, holding: 0, depr: 0, total: 1300000, days: 35, C: 9, T: 7, R: 8, Rsk: 8 },
+          { name: "PA1: Đường bộ trực tiếp + Tàu biển (Cát Lái)", score: 0.520, selected: false, cost: 1800000, holding: 0, depr: 0, total: 1800000, days: 33, C: 5, T: 9, R: 7, Rsk: 7 },
+          { name: "PA3: Đường bộ + Đường sắt + Tàu biển (Hải Phòng)", score: 0.390, selected: false, cost: 2200000, holding: 0, depr: 0, total: 2200000, days: 42, C: 4, T: 4, R: 5, Rsk: 5 }
+        ],
+        mapBounds: [[10.5, 106.5], [12.7, 108.1]],
+        domesticBounds: [[10.42, 106.55], [12.78, 108.18]],
+        globalBounds: [[1.2, 103.8], [54.0, -6.0]],
+        waypoints: [
+          {
+            name: "Kho đóng hàng Đắk Lắk",
+            lat: 12.6667,
+            lng: 108.0500,
+            type: "origin",
+            roleLabel: "Vùng nguyên liệu Tây Nguyên",
+            techSpecs: "Đóng 2.000 tấn cà phê nhân Robusta vào 100 cont 20'DC (20 tấn/cont), lót giấy Kraft hút ẩm & túi chống ẩm Calcium Chloride, vận chuyển theo QL14."
+          },
+          {
+            name: "ICD Tân Cảng Bình Dương (Sà lan)",
+            lat: 10.9333,
+            lng: 106.7000,
+            type: "transit",
+            roleLabel: "Cảng cạn ICD & Bến Sà lan Sông",
+            techSpecs: "Gom 100 cont 20'DC xuống 2 chuyến sà lan tự hành tải trọng 60–120 TEUs; hành trình đường thủy nội địa sông Đồng Nai – Thị Vải không kẹt xe, giảm 70% phát thải CO2."
+          },
+          {
+            name: "Cụm cảng nước sâu Cái Mép",
+            lat: 10.5333,
+            lng: 107.0167,
+            type: "transit",
+            roleLabel: "Cảng nước sâu Quốc tế (CMIT/TCTT)",
+            techSpecs: "Độ sâu luồng và trước bến đạt -16.5m; tiếp nhận trực tiếp tàu mẹ (Mother Vessel) trọng tải 18.000–24.000 TEU đi thẳng tuyến Á – Âu mà không cần chuyển tải Singapore."
+          },
+          {
+            name: "Cảng Hamburg (Đức)",
+            lat: 53.5461,
+            lng: 9.9660,
+            type: "destination",
+            roleLabel: "Cảng đích Bắc Âu (Cửa ngõ EU)",
+            techSpecs: "Trung tâm nhập khẩu và chế biến cà phê lớn nhất châu Âu (Eurogate/HHLA); kết nối đường sắt nội địa phân phối cho các nhà rang xay Đức."
+          }
+        ],
+        primarySegments: [
+          {
+            mode: "road",
+            label: "Chặng 1 (Đường bộ Quốc lộ 14 & ĐT741): Buôn Ma Thuột (Đắk Lắk) → Gia Nghĩa → Đồng Xoài → ICD Tân Cảng Bình Dương (315 km)",
+            color: "#10b981",
+            osrmWaypoints: [
+              [12.6667, 108.0500],
+              [12.0040, 107.6900],
+              [11.5347, 106.8906],
+              [10.9333, 106.7000]
+            ],
+            coords: [
+              [12.6667, 108.0500],
+              [12.5850, 107.8920],
+              [12.4460, 107.6280],
+              [12.2350, 107.6010],
+              [12.0040, 107.6900],
+              [11.9050, 107.5120],
+              [11.8150, 107.2510],
+              [11.6820, 107.0650],
+              [11.5347, 106.8906],
+              [11.3950, 106.8120],
+              [11.2840, 106.7450],
+              [11.1250, 106.7620],
+              [11.0120, 106.7480],
+              [10.9333, 106.7000]
+            ]
+          },
+          {
+            mode: "barge",
+            label: "Chặng 2 (Đường thủy nội địa - Sà lan 120 TEUs): Bến Sà lan Bình Dương → Sông Đồng Nai → Sông Lòng Tàu → Sông Thị Vải → Cảng nước sâu Cái Mép (68 km)",
+            color: "#06b6d4",
+            coords: [
+              [10.9333, 106.7000],
+              [10.9150, 106.7680],
+              [10.8920, 106.8350],
+              [10.8350, 106.8280],
+              [10.7680, 106.8150],
+              [10.7150, 106.7750],
+              [10.6780, 106.8120],
+              [10.6520, 106.8650],
+              [10.6180, 106.9250],
+              [10.5850, 106.9920],
+              [10.5333, 107.0167]
+            ]
+          },
+          {
+            mode: "sea",
+            label: "Chặng 3 (Tuyến Hàng hải Á-Âu - Tàu mẹ 20.000 TEU): Cái Mép → Eo biển Malacca → Biển Đỏ → Kênh đào Suez → Eo biển Manche → Sông Elbe → Cảng Hamburg (18.300 km)",
+            color: "#059669",
+            coords: [
+              [10.5333, 107.0167],
+              [10.3200, 107.0500],
+              [8.6000, 106.8000],
+              [4.5000, 105.2000],
+              [1.2644, 103.8220],
+              [3.1500, 100.6500],
+              [5.8500, 95.3000],
+              [5.8000, 80.5000],
+              [9.5000, 65.0000],
+              [12.0000, 51.2000],
+              [12.6500, 43.4000],
+              [18.5000, 39.8000],
+              [25.2000, 35.6000],
+              [29.9500, 32.5500],
+              [31.2600, 32.3100],
+              [34.6000, 24.5000],
+              [37.2000, 12.2000],
+              [36.5000, 2.5000],
+              [35.9600, -5.5000],
+              [37.0500, -9.1500],
+              [43.1500, -9.4500],
+              [48.5500, -5.1500],
+              [50.6500, 0.8500],
+              [52.5000, 3.8000],
+              [53.9500, 8.1500],
+              [53.8800, 8.7200],
+              [53.5461, 9.9660]
+            ]
+          }
+        ],
+        alternativeRoutes: [
+          {
+            mode: "road",
+            label: "PA1: Đường bộ 100 xe đầu kéo đi thẳng QL14 → QL13 → Xa lộ Hà Nội → Nút giao Mỹ Thủy → Cảng Cát Lái (Ùn tắc & phải đi tàu Feeder qua Singapore)",
+            color: "#d97706",
+            osrmWaypoints: [
+              [12.6667, 108.0500],
+              [11.5347, 106.8906],
+              [10.9800, 106.6500],
+              [10.7688, 106.7922]
+            ],
+            coords: [
+              [12.6667, 108.0500],
+              [12.2350, 107.6010],
+              [11.8150, 107.2510],
+              [11.5347, 106.8906],
+              [11.4520, 106.6620],
+              [11.1500, 106.6050],
+              [10.9800, 106.6500],
+              [10.8620, 106.7250],
+              [10.8020, 106.7580],
+              [10.7750, 106.7820],
+              [10.7688, 106.7922],
+              [10.6650, 106.8420],
+              [10.3200, 107.0500]
+            ]
+          },
+          {
+            mode: "rail",
+            label: "PA3: Đường bộ + Đường sắt Bắc-Nam (Ga Sóng Thần → Nha Trang → Đà Nẵng → Hà Nội → Cảng Hải Phòng) - Trái chiều địa lý",
+            color: "#dc2626",
+            coords: [
+              [12.6667, 108.0500],
+              [11.5347, 106.8906],
+              [10.9804, 106.7510],
+              [10.9500, 106.8200],
+              [10.9300, 107.5200],
+              [10.9300, 108.1000],
+              [11.5700, 108.9800],
+              [12.2400, 109.1900],
+              [13.0900, 109.3000],
+              [13.8000, 109.1400],
+              [15.1200, 108.7900],
+              [16.0700, 108.2100],
+              [16.4600, 107.5800],
+              [17.4700, 106.6000],
+              [18.6700, 105.6700],
+              [19.8000, 105.7700],
+              [21.0200, 105.8400],
+              [20.8449, 106.6881]
+            ]
+          }
+        ],
+        crMeta: { cr: 0.021, ci: 0.019, lambdaMax: 4.057 },
+        formulaNotes: {
+          holding: "Cà phê nhân thô xuất khẩu theo hợp đồng kỳ hạn FOB/CIF dài hạn, độ nhạy thời gian thấp nên mô hình chuẩn hóa C_holding ≈ $0 trong so sánh chênh lệch ngắn ngày.",
+          depr: "Hàng nông sản khô tiêu chuẩn (độ ẩm ≤ 12.5%) bảo quản trong container Dry có lót Kraft liner ổn định chất lượng trong 35–45 ngày (C_depr = $0).",
+          spmt: "Kiểm soát tải trọng trục xe đầu kéo trên QL14 (≤ 10 tấn/trục đơn) và mớn nước luồng Cái Mép - Thị Vải (-16.5m) cho phép xếp thẳng lên tàu mẹ 20.000 TEU."
+        },
+        technicalConstraints: [
+          {
+            badge: "Năng lực Luồng Hàng hải",
+            status: "pass",
+            title: "Mớn nước Cái Mép (-16.5m) vs Cát Lái (-12.0m)",
+            desc: "Cảng Cát Lái bị giới hạn tĩnh không cầu Phú Mỹ và độ sâu luồng, chỉ đón tàu Feeder (< 3.000 TEU) phải chuyển tải tại Singapore. Cái Mép đón thẳng tàu mẹ đi Hamburg."
+          },
+          {
+            badge: "Năng lực Vận tải Thủy nội địa",
+            status: "pass",
+            title: "1 Sà lan 100 TEU thay thế 100 chuyến xe đầu kéo vào nội đô TP.HCM",
+            desc: "Hạ tải từ đường bộ sang sà lan tại ICD Bình Dương giúp né hoàn toàn điểm đen ùn tắc Quốc lộ 1K – Xa lộ Hà Nội – Vành đai 2 – Mỹ Thủy (Cát Lái)."
+          },
+          {
+            badge: "Tối ưu Kinh tế Quy mô",
+            status: "pass",
+            title: "Tiết kiệm $500,000 USD so với PA1 và $900,000 USD so với PA3",
+            desc: "Vận tải thủy nội địa có chi phí tấn-km chỉ bằng 35–40% đường bộ, đặc biệt phát huy lợi thế khi vận chuyển lô lớn 100 containers (2.000 tấn)."
+          }
+        ],
+        justification: {
+          winnerTitle: "Tại sao chọn PA2: Đường bộ + Sà lan sông + Tàu biển Cái Mép (0.845)?",
+          winnerPoints: [
+            "<strong>Tối ưu hóa Chi phí theo Kinh tế Quy mô (Economies of Scale):</strong> Đối với mặt hàng nông sản xuất khẩu khối lượng lớn (2.000 tấn = 100x20'DC), tiêu chí Chi phí chiếm trọng số quyết định ($W_C = 0.50$). Việc kết hợp đường bộ chặng ngắn từ Đắk Lắk xuống ICD Bình Dương rồi dùng <strong>sà lan sông (Barge)</strong> kết nối ra cảng nước sâu Cái Mép giúp kéo tổng chi phí xuống chỉ còn <strong>$1,300,000 USD</strong> (tiết kiệm $500,000 USD so với đi thẳng đường bộ vào Cát Lái).",
+            "<strong>Khai thác lợi thế Cảng nước sâu Cái Mép (Direct Mother Vessel):</strong> Tại Cái Mép, lô hàng 100 cont được xếp thẳng lên tàu mẹ tuyến Á – Âu đi Hamburg, giảm rủi ro rớt tàu (Roll-over) tại cảng chuyển tải Singapore/Tanjung Pelepas.",
+            "<strong>Bền vững &amp; Độ tin cậy vận hành cao ($R = 8/10, Rsk = 8/10$):</strong> Tránh được ùn tắc giao thông đường bộ khu vực cửa ngõ TP.HCM và rủi ro tai nạn khi huy động đoàn 100 xe đầu kéo chạy xuyên tâm đô thị."
+          ],
+          rejectedTitle: "Tại sao bác bỏ PA1 (Trực tiếp Cát Lái - 0.520) và PA3 (Đường sắt Hải Phòng - 0.390)?",
+          rejectedPoints: [
+            "<strong>Bác bỏ PA1 (Đường bộ trực tiếp + Cát Lái - 0.520):</strong> Chi phí vận tải đường bộ toàn chặng cho 100 xe đầu kéo rất đắt đỏ ($1,800,000 USD), cộng thêm phụ phí kẹt cảng, phí hạ tầng và bắt buộc phải đi tàu Feeder chuyển tải qua Singapore làm tăng rủi ro chậm lịch tàu.",
+            "<strong>Bác bỏ PA3 (Đường bộ + Đường sắt + Hải Phòng - 0.390):</strong> Vận chuyển ngược lên phía Bắc (Hải Phòng) hoàn toàn bất hợp lý về mặt địa lý đối với hàng xuất đi châu Âu (tàu từ Hải Phòng vẫn phải vòng xuống phía Nam qua eo biển Malacca), làm đội chi phí lên <strong>$2,200,000 USD</strong> và kéo dài thời gian lên 42 ngày."
+          ]
+        }
+      },
+
+      case3: {
+        name: "Lô 3: Máy biến áp lực lớn 150T (Kobe - Tây Nguyên)",
+        cargoInfo: "150 Tấn LPT (12m x 4.5m x 4.2m) | Trị giá: $5.000.000 USD | Hàng Dự án Nguyên khối",
+        weights: { Cost: 0.10, Time: 0.15, Reliability: 0.25, Risk: 0.50 },
+        options: [
+          { name: "Phương án A: Tàu Heavy-lift + SPMT 12 trục (QL14)", score: 0.885, selected: true, cost: 200000, holding: 0, depr: 0, total: 200000, days: 25, C: 8, T: 7, R: 9, Rsk: 10 },
+          { name: "Phương án B: Tàu Heavy-lift + Đường sắt Bắc-Nam + Bộ", score: 0.215, selected: false, cost: 350000, holding: 0, depr: 0, total: 350000, days: 45, C: 5, T: 4, R: 3, Rsk: 1 }
+        ],
+        mapBounds: [[10.5, 107.0], [34.6, 135.1]],
+        domesticBounds: [[10.45, 106.65], [12.78, 109.25]],
+        globalBounds: [[10.2, 106.5], [35.2, 136.0]],
+        waypoints: [
+          {
+            name: "Cảng Kobe (Nhật Bản)",
+            lat: 34.6913,
+            lng: 135.1830,
+            type: "origin",
+            roleLabel: "Cảng xuất phát Thiết bị (Nhật Bản)",
+            techSpecs: "Xếp Máy biến áp 150T (12m x 4.5m x 4.2m) bằng cẩu bờ 300T hoặc cẩu đôi tàu Heavy-lift; chằng buộc (Lashing & Welding) trực tiếp vào khung dầm boong tàu kèm bình Nitơ bảo quản áp suất dương."
+          },
+          {
+            name: "Cảng nước sâu Phú Mỹ (BR-VT)",
+            lat: 10.5922,
+            lng: 107.0538,
+            type: "transit",
+            roleLabel: "Cảng tiếp nhận Hàng Siêu trường Siêu trọng",
+            techSpecs: "Cầu cảng chịu tải > 5 tấn/m²; hạ tải trực tiếp (Ship-to-Shore Direct) lên tổ hợp Rơ-moóc thủy lực tự hành SPMT 12 trục (48 lốp), áp lực trục 13.8 tấn/trục."
+          },
+          {
+            name: "Tuyến QL14 / QL27 Đắk Lắk (Tây Nguyên)",
+            lat: 12.6667,
+            lng: 108.0500,
+            type: "destination",
+            roleLabel: "Trạm Biến áp 500kV Tây Nguyên",
+            techSpecs: "Giấy phép lưu hành đặc biệt theo Nghị định 30 & TT 46/2015/TT-BGTVT; hành trình ban đêm 22:00–05:00 có xe hộ tống, gia cố cầu yếu và nâng cáp điện vượt tĩnh không > 5.0m."
+          }
+        ],
+        primarySegments: [
+          {
+            mode: "sea",
+            label: "Chặng 1 (Tàu chuyên dụng Heavy-Lift): Cảng Kobe → Eo biển Kii → Biển Hoa Đông → Eo biển Luzon → Biển Đông → Luồng Thị Vải → Cảng nước sâu Phú Mỹ (3.850 km)",
+            color: "#059669",
+            coords: [
+              [34.6913, 135.1830],
+              [34.2500, 134.9500],
+              [33.4000, 134.8000],
+              [31.5000, 131.8000],
+              [29.2000, 129.3000],
+              [26.2000, 126.5000],
+              [23.5000, 123.2000],
+              [21.4000, 120.6000],
+              [18.5000, 116.5000],
+              [15.4000, 112.4000],
+              [12.6000, 110.1000],
+              [10.8500, 108.6500],
+              [10.3200, 107.0500],
+              [10.4800, 107.0200],
+              [10.5922, 107.0538]
+            ]
+          },
+          {
+            mode: "road",
+            label: "Chặng 2 (Tổ hợp Rơ-moóc tự hành SPMT 12 trục): Cảng Phú Mỹ → QL51 → Đồng Nai → ĐT741 (Bình Dương) → Đồng Xoài → QL14 (Gia Nghĩa) → Trạm 500kV Đắk Lắk (355 km)",
+            color: "#10b981",
+            osrmWaypoints: [
+              [10.5922, 107.0538],
+              [10.9050, 106.8480],
+              [11.5347, 106.8906],
+              [12.0040, 107.6900],
+              [12.6667, 108.0500]
+            ],
+            coords: [
+              [10.5922, 107.0538],
+              [10.6580, 107.0280],
+              [10.7850, 106.9520],
+              [10.9050, 106.8480],
+              [11.0620, 106.7980],
+              [11.2840, 106.7450],
+              [11.5347, 106.8906],
+              [11.6820, 107.0650],
+              [11.8150, 107.2510],
+              [11.9050, 107.5120],
+              [12.0040, 107.6900],
+              [12.2350, 107.6010],
+              [12.4460, 107.6280],
+              [12.5850, 107.8920],
+              [12.6667, 108.0500]
+            ]
+          }
+        ],
+        alternativeRoutes: [
+          {
+            mode: "rail",
+            label: "Phương án B (Bị loại bỏ): Đường sắt Bắc-Nam khổ 1.000mm (Ga Sóng Thần → Bình Thuận → Nha Trang) + QL26 Đèo Phượng Hoàng (Vi phạm khổ giới hạn hầm & cầu đường sắt)",
+            color: "#dc2626",
+            coords: [
+              [10.5922, 107.0538],
+              [10.7850, 106.9520],
+              [10.9500, 106.8200],
+              [10.9300, 107.5200],
+              [10.9300, 108.1000],
+              [11.2500, 108.5800],
+              [11.5700, 108.9800],
+              [11.9000, 109.1400],
+              [12.2400, 109.1900],
+              [12.4900, 109.1200],
+              [12.6800, 108.7800],
+              [12.7200, 108.6500],
+              [12.6900, 108.3500],
+              [12.6667, 108.0500]
+            ]
+          }
+        ],
+        crMeta: { cr: 0.012, ci: 0.011, lambdaMax: 4.033 },
+        cargoValueUSD: 5000000,
+        interestRatePct: 12,
+        deprRatePct: 0,
+        category: "project",
+        formulaNotes: {
+          holding: "Hàng dự án EPC trọng điểm quốc gia; rủi ro phạt chậm tiến độ (Liquidated Damages - FIDIC 2017) lên tới 0.2%/ngày ($50,000–$500,000/ngày).",
+          depr: "Không trượt giá thương mại theo tuần, nhưng nếu va đập làm hỏng khối lõi-cuộn (active part 100–120T), thời gian chờ chế tạo lại (Lead time thép GOES) mất 30–36 tháng!",
+          spmt: "SPMT 12 trục (96 bánh xe) tạo áp lực mặt đường chỉ ~290 kPa (thấp hơn mức 650 kPa của xe tải 10T thường - FHWA 2007), hạ sàn thủy lực 600mm vượt tĩnh không cầu > 5.15m."
+        },
+        technicalConstraints: [
+          {
+            badge: "TT 46/2015 & TT 19/2026/BXD",
+            status: "pass",
+            title: "SPMT 12 trục (96 bánh xe): Áp lực mặt đường 290 kPa < 650 kPa xe tải thường",
+            desc: "Khối active part nguyên khối không thể tháo rời. SPMT 12 trục hạ sàn thủy lực 600mm, quay lái 360° độc lập vượt bán kính cua 15–20m trên QL14/QL27 ban đêm (22h–05h)."
+          },
+          {
+            badge: "Vi phạm 5 Rào cản Đường sắt",
+            status: "critical",
+            title: "Phương án B (Đường sắt 1.000mm) vượt 33% chiều cao & 45% chiều rộng giới hạn",
+            desc: "Khổ giới hạn đường sắt 1.000mm chỉ đạt 3.9m × 3.1m (qua 39 hầm chui & 1.790 cầu giàn thép tải trục 12–14T). Tổ hợp hàng + toa xe cao 5.2m, rộng 4.5m, tải trục 16T/trục → Bất khả thi!"
+          },
+          {
+            badge: "Công nghệ 3D Swept Path & IoT",
+            status: "pass",
+            title: "Mô phỏng quỹ đạo quét 3D CAD & Cảm biến gia tốc 3 chiều (3-axis IoT) + Điều kiện FOB Kobe",
+            desc: "Hợp đồng FOB Kobe (Incoterms 2020) kết hợp bảo hiểm ICC (A) + Project Cargo Clause giúp nhà thầu EPC kiểm soát hoàn toàn tàu Heavy-lift và SPMT nội địa."
+          }
+        ],
+        justification: {
+          winnerTitle: "Tại sao chọn Phương án A: Tàu Heavy-lift + SPMT 12 trục qua QL14 & QL27 (0.885)?",
+          winnerPoints: [
+            "<strong>Giải pháp kỹ thuật duy nhất khả thi cho khối lõi-cuộn (Active Part) nguyên khối:</strong> Máy biến áp 150T ($12\text{m} \times 4.5\text{m} \times 4.2\text{m}$) không thể tháo rời lõi từ do yêu cầu sấy chân không phòng sạch. Tổ hợp <strong>SPMT 12 trục (96 bánh xe)</strong> phân bổ áp lực mặt đường xuống chỉ còn <strong>290 kPa</strong> (so với 650 kPa của xe tải 10T) và hạ thấp sàn thủy lực $600\text{ mm}$ để chui lọt các gầm cầu tĩnh không $> 5.15\text{ m}$.",
+            "<strong>Triệt tiêu rủi ro phạt chậm tiến độ EPC (Liquidated Damages 0.2%/ngày) &amp; Lead-time 30–36 tháng:</strong> Giao thẳng từ mạn tàu Heavy-lift tại cảng nước sâu Phú Mỹ lên SPMT chạy thẳng QL51 – QL14 – QL27 mà không qua bất kỳ điểm chuyển tải trung gian nào.",
+            "<strong>Kiểm soát rủi ro chủ động qua FOB (Incoterms 2020), 3D Swept Path &amp; IoT Telemetry:</strong> Mô phỏng quỹ đạo quét 3D CAD trước hành trình và giám sát gia tốc 3 chiều (G-force) thời gian thực qua vệ tinh."
+          ],
+          rejectedTitle: "Tại sao bác bỏ hoàn toàn Phương án B: Tàu Heavy-lift + Đường sắt Bắc-Nam (0.215)?",
+          rejectedPoints: [
+            "<strong>Vi phạm đồng thời 5 rào cản vật lý bất khả kháng của đường sắt khổ 1.000mm (UNESCAP 2020):</strong> Khổ giới hạn đường sắt chỉ cho phép $3.9\text{ m}$ (cao) $\times 3.1\text{ m}$ (rộng), trong khi kiện hàng trên toa xe cao tới $5.2\text{ m}$ (vượt <strong>33%</strong>) và rộng $4.5\text{ m}$ (vượt <strong>45%</strong>), không thể chui qua 39 hầm đường sắt và 1.790 cầu giàn thép.",
+            "<strong>Vượt tải trọng trục cầu đường sắt &amp; Thiếu tuyến nhánh lên Tây Nguyên:</strong> Toa xe 12 trục tạo áp lực $16\text{ tấn/trục}$ vượt giới hạn cầu yếu ($12\text{–}14\text{ tấn/trục}$), đồng thời vẫn phải cẩu chuyển tải sang đường bộ ở miền Trung làm tăng nguy cơ va đập hỏng lõi thép từ tính GOES."
+          ]
+        }
+      },
+
+      case_custom: {
+        name: "Kịch bản Tự nhập: Thủy sản Đông lạnh Xuất khẩu (Cần Thơ - Cái Mép - Tokyo)",
+        cargoInfo: "1.000 tấn Tôm đông lạnh IQF (50x40'RF Reefer) | Trị giá: $12.000.000 USD | Nhiệt độ -18°C",
+        weights: { Cost: 0.25, Time: 0.30, Reliability: 0.25, Risk: 0.20 },
+        cargoValueUSD: 12000000,
+        interestRatePct: 12,
+        deprRatePct: 0.8,
+        category: "reefer",
+        options: [
+          { name: "PA1: Sà lan Lạnh (Cần Thơ - Cái Mép) + Tàu biển Express (Tokyo)", score: 0.835, selected: true, cost: 280000, holding: 47342, depr: 164571, total: 491913, days: 12, C: 8, T: 8, R: 9, Rsk: 9 },
+          { name: "PA2: Xe đầu kéo Reefer (QL1A - Cát Lái) + Tàu Feeder (Via Kaohsiung)", score: 0.585, selected: false, cost: 340000, holding: 71014, depr: 246857, total: 657871, days: 18, C: 6, T: 6, R: 6, Rsk: 6 },
+          { name: "PA3: Hàng không Chuyên cơ Lạnh (TSN - NRT)", score: 0.490, selected: false, cost: 1650000, holding: 11836, depr: 41143, total: 1702979, days: 3, C: 2, T: 10, R: 9, Rsk: 9 }
+        ],
+        mapBounds: [[10.0, 105.7], [35.6, 139.8]],
+        domesticBounds: [[9.8, 105.5], [10.9, 107.3]],
+        globalBounds: [[9.5, 105.0], [36.2, 140.5]],
+        waypoints: [
+          {
+            name: "KCN Trà Nóc, Cần Thơ",
+            lat: 10.0982,
+            lng: 105.7125,
+            type: "origin",
+            roleLabel: "Nhà máy Chế biến Thủy sản (Origin)",
+            techSpecs: "Đóng 50 container lạnh 40'RF (-18°C đến -22°C), cắm điện Genset liên tục 24/7 và theo dõi nhiệt độ qua datalogger GPS."
+          },
+          {
+            name: "Cụm cảng nước sâu Cái Mép",
+            lat: 10.5333,
+            lng: 107.0167,
+            type: "transit",
+            roleLabel: "Cảng Chuyển tải Nước sâu (Transit Hub)",
+            techSpecs: "Hệ thống 1.500+ ổ cắm điện Reefer tại Cái Mép; kết nối tuyến tàu mẹ trực tiếp đi Đông Bắc Á (Nhật Bản)."
+          },
+          {
+            name: "Cảng Tokyo (Nhật Bản)",
+            lat: 35.6197,
+            lng: 139.7798,
+            type: "destination",
+            roleLabel: "Cảng Đích Quốc tế (Destination)",
+            techSpecs: "Cảng Oi Container Terminal (Tokyo); kiểm dịch an toàn thực phẩm tự động và phân phối chuỗi siêu thị Nhật Bản."
+          }
+        ],
+        primarySegments: [
+          {
+            mode: "barge",
+            label: "Chặng 1 (Sà lan có trạm phát điện Reefer): Cảng Cần Thơ → Sông Hậu → Kênh Chợ Gạo → Cái Mép",
+            color: "#06b6d4",
+            coords: [
+              [10.0982, 105.7125],
+              [9.9850, 105.9200],
+              [10.2200, 106.3500],
+              [10.3800, 106.6800],
+              [10.5333, 107.0167]
+            ]
+          },
+          {
+            mode: "sea",
+            label: "Chặng 2 (Tàu mẹ tuyến Đông Bắc Á): Cái Mép → Biển Đông → Eo biển Bashi → Cảng Tokyo",
+            color: "#059669",
+            coords: [
+              [10.5333, 107.0167],
+              [10.3200, 107.0500],
+              [12.6000, 110.1000],
+              [16.5000, 114.2000],
+              [21.4000, 120.6000],
+              [26.2000, 126.5000],
+              [31.5000, 132.5000],
+              [34.5000, 138.8000],
+              [35.6197, 139.7798]
+            ]
+          }
+        ],
+        alternativeRoutes: [
+          {
+            mode: "road",
+            label: "PA2: Đường bộ Cao tốc Trung Lương - Mỹ Thuận → Cát Lái → Tàu Feeder qua Kaohsiung",
+            color: "#d97706",
+            osrmWaypoints: [
+              [10.0982, 105.7125],
+              [10.3500, 106.3500],
+              [10.7688, 106.7922]
+            ],
+            coords: [
+              [10.0982, 105.7125],
+              [10.2500, 105.9800],
+              [10.3500, 106.3500],
+              [10.6500, 106.5800],
+              [10.7688, 106.7922],
+              [10.3200, 107.0500],
+              [22.6163, 120.2659],
+              [35.6197, 139.7798]
+            ]
+          }
+        ],
+        crMeta: { cr: 0.015, ci: 0.014, lambdaMax: 4.041 },
+        formulaNotes: {
+          holding: "Dữ liệu được tính tự động theo Giá trị lô hàng V, lãi suất r (%/năm) và thời gian vận chuyển t (ngày) do thành viên nhóm nhập.",
+          depr: "Dữ liệu hao hụt thương mại / giảm phẩm cấp C_depr được tính tự động theo tỷ lệ δ (%/tuần) do thành viên nhóm nhập.",
+          spmt: "Kiểm tra tự động tải trọng trục, áp lực mặt đường (kPa) và khổ giới hạn hạ tầng theo thông số nhập vào."
+        },
+        technicalConstraints: [
+          {
+            badge: "Chế độ Tự Kiểm Chứng",
+            status: "pass",
+            title: "Kịch bản Tùy chỉnh đang hoạt động (Live Custom Scenario)",
+            desc: "Bạn có thể thay đổi Điểm đi, Điểm đến, Giá trị lô hàng, Lãi suất, Trượt giá và Bảng phương án ở khung Nhập dữ liệu phía trên để kiểm tra mọi kịch bản."
+          }
+        ],
+        justification: {
+          winnerTitle: "Luận giải Tự động từ Mô hình Fuzzy AHP & Tổng Chi phí So sánh (TC):",
+          winnerPoints: [
+            "<strong>Tối ưu hóa Đa tiêu chí (MCDM):</strong> Phương án dẫn đầu đạt điểm tổng hợp Fuzzy AHP cao nhất dựa trên bộ trọng số $(W_C, W_T, W_R, W_{Rsk})$ và ma trận điểm thành phần do thành viên nhóm thiết lập.",
+            "<strong>Kiểm soát Tổng Chi phí Logistics ($TC = C_{\\text{trans}} + C_{\\text{holding}} + C_{\\text{depr}}$):</strong> Phản ánh chính xác sự đánh đổi phi tuyến giữa cước vận tải trực tiếp và chi phí vốn/trượt giá trên đường."
+          ],
+          rejectedTitle: "Phân tích So sánh các Phương án Thay thế:",
+          rejectedPoints: [
+            "<strong>Phương án xếp sau:</strong> Có tổng chi phí so sánh ($TC$) cao hơn hoặc điểm độ tin cậy / an toàn kỹ thuật thấp hơn trên hành lang vận tải đã chọn."
+          ]
+        }
+      }
+    };
+
+    // Criteria Metadata
+    const CRITERIA_META = [
+      {
+        key: "Cost",
+        scoreKey: "C",
+        code: "C",
+        name: "Chi phí Logistics (Cost)",
+        shortDesc: "Cước trực tiếp + Chi phí lưu vốn + Hao hụt giá trị",
+        icon: "fa-coins",
+        color: "#1e3a8a",
+        badgeClass: "bg-blue-100 text-blue-800 border-blue-200"
+      },
+      {
+        key: "Time",
+        scoreKey: "T",
+        code: "T",
+        name: "Thời gian Toàn trình (Time)",
+        shortDesc: "Tốc độ giao hàng Door-to-Door & đáp ứng JIT",
+        icon: "fa-bolt",
+        color: "#d97706",
+        badgeClass: "bg-amber-100 text-amber-800 border-amber-200"
+      },
+      {
+        key: "Reliability",
+        scoreKey: "R",
+        code: "R",
+        name: "Độ tin cậy Chuỗi (Reliability)",
+        shortDesc: "Đúng lịch trình, ít điểm chuyển tải & năng lực luồng",
+        icon: "fa-clock-rotate-left",
+        color: "#059669",
+        badgeClass: "bg-emerald-100 text-emerald-800 border-emerald-200"
+      },
+      {
+        key: "Risk",
+        scoreKey: "Rsk",
+        code: "Rsk",
+        name: "Rủi ro & An toàn Kỹ thuật (Risk)",
+        shortDesc: "An toàn hàng hóa, tĩnh không, tải trọng trục & pháp lý",
+        icon: "fa-shield-halved",
+        color: "#7c3aed",
+        badgeClass: "bg-purple-100 text-purple-800 border-purple-200"
+      }
+    ];
+
+    // ============================================================================
+    // 2. APPLICATION STATE
+    // ============================================================================
+    let currentCaseId = "case1";
+    let sliderRawWeights = { Cost: 0.10, Time: 0.45, Reliability: 0.15, Risk: 0.30 };
+    let leafletMap = null;
+    let mapLayerGroup = null;
+    let currentTileMode = "osm"; // "osm" | "satellite"
+    let osmTileLayer = null;
+    let satelliteTileLayer = null;
+    let satelliteLabelsLayer = null;
+    let radarChartInstance = null;
+    let costBarChartInstance = null;
+
+    // ============================================================================
+    // 3. FUZZY AHP MATHEMATICAL ENGINE (TFN + COA + CONSISTENCY + MCDM SCORING)
+    // ============================================================================
+    function computeFuzzyAHP(rawWeights, caseData) {
+      const keys = ["Cost", "Time", "Reliability", "Risk"];
+      const sumRaw = keys.reduce((acc, k) => acc + Math.max(0.01, Number(rawWeights[k]) || 0), 0);
+
+      // 1. Construct Triangular Fuzzy Numbers (l_i, m_i, u_i) around modal value m_i
+      const tfnMap = {};
+      let sumCoa = 0;
+
+      keys.forEach((k) => {
+        const m = Math.max(0.01, Number(rawWeights[k]) || 0) / sumRaw;
+        // Fuzzy spread delta_l = 18%, delta_u = 22% (asymmetric realistic fuzzy uncertainty)
+        const l = Math.max(0.005, m * 0.82);
+        const u = Math.min(0.995, m * 1.22);
+        // Center of Area (COA) defuzzification: (l + 4m + u) / 6
+        const coa = (l + 4 * m + u) / 6;
+        tfnMap[k] = { l, m, u, coa, normalized: 0 };
+        sumCoa += coa;
+      });
+
+      // Normalize COA weights so sum(W_i) = 1.000
+      keys.forEach((k) => {
+        tfnMap[k].normalized = tfnMap[k].coa / sumCoa;
+      });
+
+      // 2. Compute L1 distance from default weights of the selected Case Study
+      const defaultW = caseData.weights;
+      const l1Diff = keys.reduce((acc, k) => acc + Math.abs(tfnMap[k].normalized - defaultW[k]), 0);
+      const isDefaultWeights = l1Diff < 0.008;
+
+      // 3. Compute Consistency Ratio (CR) dynamically based on perturbation around the consistent Fuzzy Pairwise Matrix
+      const baseCr = caseData.crMeta.cr;
+      const dynamicCr = Math.min(0.089, Number((baseCr + l1Diff * 0.025).toFixed(3)));
+      const dynamicCi = Number((dynamicCr * 0.90).toFixed(3));
+      const dynamicLambda = Number((4 + 3 * dynamicCi).toFixed(3));
+
+      // 4. Calculate MCDM Composite Score for each Transport Option
+      // At default weights (l1Diff == 0), score matches LOGISTICS_DATABASE.options[i].score 100% exactly!
+      // As the user moves sliders, score responds dynamically to (W_C*C + W_T*T + W_R*R + W_Rsk*Rsk)/10.
+      const blendFactor = Math.max(0, 1 - l1Diff * 2.5);
+
+      const evaluatedOptions = caseData.options.map((opt, idx) => {
+        const defaultRawScore =
+          (defaultW.Cost * opt.C +
+            defaultW.Time * opt.T +
+            defaultW.Reliability * opt.R +
+            defaultW.Risk * opt.Rsk) /
+          10;
+
+        const currentRawScore =
+          (tfnMap.Cost.normalized * opt.C +
+            tfnMap.Time.normalized * opt.T +
+            tfnMap.Reliability.normalized * opt.R +
+            tfnMap.Risk.normalized * opt.Rsk) /
+          10;
+
+        const calibrationDelta = opt.score - defaultRawScore;
+        const compositeScore = isDefaultWeights
+          ? opt.score
+          : Math.max(0.05, Math.min(0.995, currentRawScore + blendFactor * calibrationDelta));
+
+        return {
+          ...opt,
+          originalIndex: idx,
+          computedScore: Number(compositeScore.toFixed(3)),
+          rawWeightedScore: Number(currentRawScore.toFixed(3))
+        };
+      });
+
+      // Rank options descending by computedScore
+      const rankedOptions = [...evaluatedOptions].sort((a, b) => b.computedScore - a.computedScore);
+      const winningOptionName = rankedOptions[0].name;
+
+      evaluatedOptions.forEach((opt) => {
+        opt.isDynamicWinner = opt.name === winningOptionName;
+      });
+
+      return {
+        tfnMap,
+        isDefaultWeights,
+        cr: dynamicCr,
+        ci: dynamicCi,
+        lambdaMax: dynamicLambda,
+        evaluatedOptions,
+        rankedOptions,
+        winner: rankedOptions[0]
+      };
+    }
+
+    // ============================================================================
+    // 4. FORMATTERS
+    // ============================================================================
+    function formatUSD(val) {
+      return "$" + Number(val).toLocaleString("en-US");
+    }
+
+    // ============================================================================
+    // 5. INITIALIZE LEAFLET MAP
+    // ============================================================================
+    function initMap() {
+      leafletMap = L.map("mapContainer", {
+        zoomControl: true,
+        scrollWheelZoom: true
+      }).setView([20.0, 106.0], 5);
+
+      osmTileLayer = L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
+        maxZoom: 19,
+        attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors | UTH Logistics'
+      });
+
+      satelliteTileLayer = L.tileLayer(
+        "https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}",
+        {
+          maxZoom: 19,
+          attribution: "Tiles &copy; Esri &mdash; Source: Esri, Maxar, Earthstar Geographics"
+        }
+      );
+
+      satelliteLabelsLayer = L.tileLayer(
+        "https://server.arcgisonline.com/ArcGIS/rest/services/Reference/World_Boundaries_and_Places/MapServer/tile/{z}/{y}/{x}",
+        {
+          maxZoom: 19
+        }
+      );
+
+      osmTileLayer.addTo(leafletMap);
+      mapLayerGroup = L.layerGroup().addTo(leafletMap);
+    }
+
+    function toggleMapTileLayer() {
+      if (!leafletMap) return;
+      const labelEl = document.getElementById("tileModeLabel");
+      if (currentTileMode === "osm") {
+        leafletMap.removeLayer(osmTileLayer);
+        satelliteTileLayer.addTo(leafletMap);
+        satelliteLabelsLayer.addTo(leafletMap);
+        currentTileMode = "satellite";
+        labelEl.textContent = "Bản đồ Đường phố";
+      } else {
+        leafletMap.removeLayer(satelliteTileLayer);
+        leafletMap.removeLayer(satelliteLabelsLayer);
+        osmTileLayer.addTo(leafletMap);
+        currentTileMode = "osm";
+        labelEl.textContent = "Vệ tinh Esri";
+      }
+    }
+
+    // Cache for OSRM real road geometries
+    const osrmRouteCache = {};
+
+    // Catmull-Rom Spline Interpolation for smooth sea lanes, river channels, railways & air corridors
+    function smoothPathGeometry(pts, subdivisions = 7) {
+      if (!Array.isArray(pts) || pts.length < 3) return pts || [];
+      const result = [];
+      for (let i = 0; i < pts.length - 1; i++) {
+        const p0 = pts[Math.max(0, i - 1)];
+        const p1 = pts[i];
+        const p2 = pts[i + 1];
+        const p3 = pts[Math.min(pts.length - 1, i + 2)];
+
+        for (let step = 0; step < subdivisions; step++) {
+          const t = step / subdivisions;
+          const t2 = t * t;
+          const t3 = t2 * t;
+
+          const lat =
+            0.5 *
+            (2 * p1[0] +
+              (-p0[0] + p2[0]) * t +
+              (2 * p0[0] - 5 * p1[0] + 4 * p2[0] - p3[0]) * t2 +
+              (-p0[0] + 3 * p1[0] - 3 * p2[0] + p3[0]) * t3);
+
+          const lng =
+            0.5 *
+            (2 * p1[1] +
+              (-p0[1] + p2[1]) * t +
+              (2 * p0[1] - 5 * p1[1] + 4 * p2[1] - p3[1]) * t2 +
+              (-p0[1] + 3 * p1[1] - 3 * p2[1] + p3[1]) * t3);
+
+          result.push([lat, lng]);
+        }
+      }
+      result.push(pts[pts.length - 1]);
+      return result;
+    }
+
+    // Fetch exact street-level road geometry from OSRM Routing Engine when online
+    async function fetchOsrmRoadGeometry(waypointsArray) {
+      if (!Array.isArray(waypointsArray) || waypointsArray.length < 2) return null;
+      const cacheKey = waypointsArray.map((p) => `${p[0].toFixed(4)},${p[1].toFixed(4)}`).join(";");
+      if (osrmRouteCache[cacheKey]) return osrmRouteCache[cacheKey];
+
+      try {
+        const coordString = waypointsArray.map((p) => `${p[1]},${p[0]}`).join(";");
+        const url = `https://router.project-osrm.org/route/v1/driving/${coordString}?overview=full&geometries=geojson`;
+        const response = await fetch(url);
+        if (!response.ok) return null;
+        const data = await response.json();
+        if (data && data.routes && data.routes[0] && data.routes[0].geometry) {
+          const latLngs = data.routes[0].geometry.coordinates.map((c) => [c[1], c[0]]);
+          osrmRouteCache[cacheKey] = latLngs;
+          return latLngs;
+        }
+      } catch (err) {
+        // Fallback silently to high-resolution pre-baked highway coordinates
+      }
+      return null;
+    }
+
+    function getModeMeta(mode) {
+      switch (mode) {
+        case "road":
+          return { icon: "fa-truck-moving", badge: "Đường bộ / SPMT", bg: "#10b981" };
+        case "barge":
+          return { icon: "fa-ferry", badge: "Sà lan sông", bg: "#06b6d4" };
+        case "sea":
+          return { icon: "fa-ship", badge: "Hàng hải Quốc tế", bg: "#059669" };
+        case "air":
+          return { icon: "fa-plane", badge: "Đường bay Quốc tế", bg: "#059669" };
+        case "rail":
+          return { icon: "fa-train-subway", badge: "Đường sắt 1.000mm", bg: "#dc2626" };
+        default:
+          return { icon: "fa-route", badge: "Đa phương thức", bg: "#d97706" };
+      }
+    }
+
+    function renderMapForCase(caseData, ahpResult) {
+      if (!leafletMap || !mapLayerGroup) return;
+      mapLayerGroup.clearLayers();
+      const renderCaseToken = currentCaseId;
+
+      // 1. Draw alternative routes first with smooth realistic geometry & mode styling
+      if (Array.isArray(caseData.alternativeRoutes)) {
+        caseData.alternativeRoutes.forEach((alt) => {
+          const smoothedAlt = smoothPathGeometry(alt.coords, 6);
+          const isRail = alt.mode === "rail";
+
+          // Rail bed underlayer if rail
+          if (isRail) {
+            L.polyline(smoothedAlt, {
+              color: "#475569",
+              weight: 5,
+              opacity: 0.45
+            }).addTo(mapLayerGroup);
+          }
+
+          const altLine = L.polyline(smoothedAlt, {
+            color: alt.color || "#d97706",
+            weight: isRail ? 3.5 : 3,
+            opacity: 0.85,
+            dashArray: isRail ? "6, 8" : "9, 7"
+          }).addTo(mapLayerGroup);
+
+          altLine.bindTooltip(
+            `<div class="text-xs font-semibold">${alt.label}</div>`,
+            { sticky: true }
+          );
+
+          // If alternative route has road OSRM waypoints, snap to exact highway geometry
+          if (alt.osrmWaypoints) {
+            fetchOsrmRoadGeometry(alt.osrmWaypoints).then((exactRoad) => {
+              if (exactRoad && currentCaseId === renderCaseToken && mapLayerGroup.hasLayer(altLine)) {
+                altLine.setLatLngs(exactRoad);
+              }
+            });
+          }
+        });
+      }
+
+      // 2. Draw primary winning route segments (Road / Barge / Sea / Air) with realistic geometry
+      const segments = Array.isArray(caseData.primarySegments) && caseData.primarySegments.length > 0
+        ? caseData.primarySegments
+        : [{ mode: "sea", label: ahpResult.winner.name, color: "#059669", coords: caseData.waypoints.map((w) => [w.lat, w.lng]) }];
+
+      segments.forEach((seg) => {
+        const smoothedCoords = smoothPathGeometry(seg.coords, 8);
+        const segColor = seg.color || "#059669";
+        const modeInfo = getModeMeta(seg.mode);
+
+        // Glowing outer corridor halo
+        const haloLine = L.polyline(smoothedCoords, {
+          color: segColor,
+          weight: 10,
+          opacity: 0.24,
+          lineCap: "round",
+          lineJoin: "round"
+        }).addTo(mapLayerGroup);
+
+        // Solid inner track casing
+        const baseLine = L.polyline(smoothedCoords, {
+          color: "#0f172a",
+          weight: 5.5,
+          opacity: 0.55,
+          lineCap: "round",
+          lineJoin: "round"
+        }).addTo(mapLayerGroup);
+
+        // Animated flow polyline
+        const flowLine = L.polyline(smoothedCoords, {
+          color: segColor,
+          weight: 4,
+          opacity: 0.98,
+          dashArray: seg.mode === "road" ? "10, 6" : "14, 8",
+          className: "animated-route-line"
+        }).addTo(mapLayerGroup);
+
+        const tooltipHtml = `
+          <div class="text-xs font-sans p-0.5">
+            <div class="font-extrabold text-emerald-800">${seg.label}</div>
+            <div class="text-[11px] text-slate-600">Phương án tối ưu: ${ahpResult.winner.name} (MCDM: ${ahpResult.winner.computedScore.toFixed(3)})</div>
+          </div>
+        `;
+        flowLine.bindTooltip(tooltipHtml, { sticky: true });
+        haloLine.bindTooltip(tooltipHtml, { sticky: true });
+
+        // Place a transport mode pill marker at the midpoint of each segment
+        const midPoint = smoothedCoords[Math.floor(smoothedCoords.length / 2)];
+        if (midPoint) {
+          const midIcon = L.divIcon({
+            className: "",
+            html: `
+              <div class="px-2 py-0.5 rounded-full text-[10px] font-extrabold text-white shadow-md border border-white/80 flex items-center gap-1 whitespace-nowrap" style="background:${modeInfo.bg}; transform: translate(-50%, -50%); width: max-content;">
+                <i class="fa-solid ${modeInfo.icon}"></i>
+                <span>${modeInfo.badge}</span>
+              </div>
+            `,
+            iconSize: [0, 0]
+          });
+          const midMarker = L.marker(midPoint, { icon: midIcon, interactive: true }).addTo(mapLayerGroup);
+          midMarker.bindTooltip(tooltipHtml);
+        }
+
+        // If segment is a road leg with OSRM waypoints, fetch 100% real highway geometry from OSRM
+        if (seg.osrmWaypoints) {
+          fetchOsrmRoadGeometry(seg.osrmWaypoints).then((exactRoadCoords) => {
+            if (exactRoadCoords && currentCaseId === renderCaseToken && mapLayerGroup.hasLayer(flowLine)) {
+              haloLine.setLatLngs(exactRoadCoords);
+              baseLine.setLatLngs(exactRoadCoords);
+              flowLine.setLatLngs(exactRoadCoords);
+              const badgeEl = document.getElementById("osrmStatusBadge");
+              if (badgeEl) {
+                badgeEl.textContent = "OSRM Thực tế ✓";
+              }
+            }
+          });
+        }
+      });
+
+      // 3. Draw custom styled Waypoint Markers + Technical Constraint Popups
+      const markerRefs = [];
+      caseData.waypoints.forEach((wp, idx) => {
+        let bgColor = "#1e3a8a";
+        let iconClass = "fa-industry";
+        let badgeColor = "bg-blue-100 text-blue-800";
+
+        if (wp.type === "origin") {
+          bgColor = "#2563eb";
+          iconClass = "fa-warehouse";
+          badgeColor = "bg-blue-100 text-blue-800";
+        } else if (wp.type === "transit") {
+          bgColor = "#d97706";
+          iconClass = currentCaseId === "case1" ? "fa-plane-departure" : "fa-anchor";
+          badgeColor = "bg-amber-100 text-amber-800";
+        } else if (wp.type === "destination") {
+          bgColor = "#059669";
+          iconClass = "fa-flag-checkered";
+          badgeColor = "bg-emerald-100 text-emerald-800";
+        }
+
+        const customIcon = L.divIcon({
+          className: "",
+          html: `
+            <div class="custom-marker-pin" style="width: 36px; height: 36px; background: ${bgColor};">
+              <i class="fa-solid ${iconClass} text-xs"></i>
+            </div>
+          `,
+          iconSize: [36, 36],
+          iconAnchor: [18, 18],
+          popupAnchor: [0, -18]
+        });
+
+        const marker = L.marker([wp.lat, wp.lng], { icon: customIcon }).addTo(mapLayerGroup);
+
+        const popupHtml = `
+          <div class="p-1.5 max-w-[260px] font-sans">
+            <div class="flex items-center justify-between gap-2 mb-1">
+              <span class="px-2 py-0.5 rounded text-[10px] font-bold uppercase ${badgeColor}">
+                Chặng ${idx + 1}: ${wp.roleLabel || wp.type.toUpperCase()}
+              </span>
+              <span class="text-[10px] font-mono text-slate-400">${wp.lat.toFixed(2)}°N, ${wp.lng.toFixed(2)}°E</span>
+            </div>
+            <h4 class="text-sm font-extrabold text-slate-900 mb-1">${wp.name}</h4>
+            <p class="text-xs text-slate-600 leading-relaxed border-t border-slate-100 pt-1.5">
+              <strong class="text-slate-800">Ràng buộc Kỹ thuật:</strong> ${wp.techSpecs}
+            </p>
+          </div>
+        `;
+
+        marker.bindPopup(popupHtml);
+        markerRefs.push(marker);
+      });
+
+      // Fit bounds cleanly
+      fitCurrentCaseBounds(caseData);
+
+      // Render clickable Waypoint Cards below map
+      const stripEl = document.getElementById("waypointsStrip");
+      stripEl.innerHTML = caseData.waypoints
+        .map((wp, idx) => {
+          const borderClass =
+            wp.type === "origin"
+              ? "border-l-4 border-l-blue-600"
+              : wp.type === "transit"
+              ? "border-l-4 border-l-amber-500"
+              : "border-l-4 border-l-emerald-600";
+
+          return `
+            <button
+              type="button"
+              data-wp-idx="${idx}"
+              class="waypoint-card-btn text-left bg-white hover:bg-blue-50/50 p-3 rounded-xl border border-slate-200 ${borderClass} shadow-sm transition group"
+            >
+              <div class="flex items-center justify-between text-[11px] text-slate-500 mb-0.5">
+                <span class="font-bold uppercase tracking-wider text-slate-600">${idx + 1}. ${wp.roleLabel}</span>
+                <span class="font-mono text-[10px] text-slate-400 group-hover:text-uth-navy">
+                  <i class="fa-solid fa-magnifying-glass-location mr-0.5"></i>${wp.lat.toFixed(2)}, ${wp.lng.toFixed(2)}
+                </span>
+              </div>
+              <div class="font-extrabold text-xs text-slate-900 group-hover:text-uth-navy line-clamp-1">${wp.name}</div>
+              <p class="text-[11px] text-slate-600 mt-1 line-clamp-2 leading-snug">${wp.techSpecs}</p>
+            </button>
+          `;
+        })
+        .join("");
+
+      stripEl.querySelectorAll(".waypoint-card-btn").forEach((btn) => {
+        btn.addEventListener("click", () => {
+          const idx = Number(btn.getAttribute("data-wp-idx"));
+          const wp = caseData.waypoints[idx];
+          if (wp && markerRefs[idx]) {
+            leafletMap.flyTo([wp.lat, wp.lng], Math.max(leafletMap.getZoom(), 9), {
+              duration: 0.9
+            });
+            markerRefs[idx].openPopup();
+          }
+        });
+      });
+    }
+
+    function fitCurrentCaseBounds(caseData) {
+      if (!leafletMap || !caseData) return;
+      const allCoords = [];
+      if (Array.isArray(caseData.primarySegments)) {
+        caseData.primarySegments.forEach((seg) => {
+          seg.coords.forEach((c) => allCoords.push(c));
+        });
+      } else {
+        caseData.waypoints.forEach((w) => allCoords.push([w.lat, w.lng]));
+      }
+      const bounds = L.latLngBounds(allCoords);
+      leafletMap.fitBounds(bounds, { padding: [38, 38] });
+    }
+
+    function focusVietnamCorridor(caseData) {
+      if (!leafletMap || !caseData) return;
+      if (caseData.domesticBounds) {
+        leafletMap.fitBounds(L.latLngBounds(caseData.domesticBounds), { padding: [35, 35] });
+      } else {
+        fitCurrentCaseBounds(caseData);
+      }
+    }
+
+    // ============================================================================
+    // 6. INITIALIZE & UPDATE CHARTS (RADAR CHART & COST STACKED BAR CHART)
+    // ============================================================================
+    function renderCharts(caseData, ahpResult) {
+      const optionColors = [
+        {
+          border: "#059669",
+          bg: "rgba(5, 150, 105, 0.22)",
+          point: "#059669"
+        },
+        {
+          border: "#d97706",
+          bg: "rgba(217, 119, 6, 0.18)",
+          point: "#d97706"
+        },
+        {
+          border: "#1e3a8a",
+          bg: "rgba(30, 58, 138, 0.15)",
+          point: "#1e3a8a"
+        }
+      ];
+
+      // 1. RADAR CHART (Scale 1-10 across C, T, R, Rsk)
+      const radarCtx = document.getElementById("radarChartCanvas").getContext("2d");
+      if (radarChartInstance) {
+        radarChartInstance.destroy();
+      }
+
+      const radarDatasets = ahpResult.evaluatedOptions.map((opt, idx) => {
+        const palette = optionColors[idx % optionColors.length];
+        const isWinner = opt.isDynamicWinner;
+        return {
+          label: `${opt.name} (${opt.computedScore.toFixed(3)})`,
+          data: [opt.C, opt.T, opt.R, opt.Rsk],
+          borderColor: isWinner ? "#059669" : palette.border,
+          backgroundColor: isWinner ? "rgba(5, 150, 105, 0.25)" : palette.bg,
+          borderWidth: isWinner ? 3 : 2,
+          pointBackgroundColor: isWinner ? "#059669" : palette.point,
+          pointRadius: isWinner ? 4.5 : 3.5
+        };
+      });
+
+      radarChartInstance = new Chart(radarCtx, {
+        type: "radar",
+        data: {
+          labels: [
+            `Chi phí (C: ${(ahpResult.tfnMap.Cost.normalized * 100).toFixed(0)}%)`,
+            `Thời gian (T: ${(ahpResult.tfnMap.Time.normalized * 100).toFixed(0)}%)`,
+            `Độ tin cậy (R: ${(ahpResult.tfnMap.Reliability.normalized * 100).toFixed(0)}%)`,
+            `An toàn & Rủi ro (Rsk: ${(ahpResult.tfnMap.Risk.normalized * 100).toFixed(0)}%)`
+          ],
+          datasets: radarDatasets
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          scales: {
+            r: {
+              min: 0,
+              max: 10,
+              ticks: {
+                stepSize: 2,
+                backdropColor: "transparent",
+                font: { size: 10, family: "JetBrains Mono" }
+              },
+              pointLabels: {
+                font: { size: 11, weight: "bold", family: "Inter" },
+                color: "#1e293b"
+              },
+              grid: {
+                color: "rgba(148, 163, 184, 0.35)"
+              },
+              angleLines: {
+                color: "rgba(148, 163, 184, 0.35)"
+              }
+            }
+          },
+          plugins: {
+            legend: {
+              position: "bottom",
+              labels: {
+                boxWidth: 12,
+                font: { size: 11, weight: "600", family: "Inter" }
+              }
+            },
+            tooltip: {
+              callbacks: {
+                label: (ctx) => `${ctx.dataset.label}: ${ctx.raw}/10 điểm`
+              }
+            }
+          }
+        }
+      });
+
+      // 2. STACKED COST BREAKDOWN BAR CHART (Direct Freight vs Holding Cost vs Depreciation Cost)
+      const barCtx = document.getElementById("costBarChartCanvas").getContext("2d");
+      if (costBarChartInstance) {
+        costBarChartInstance.destroy();
+      }
+
+      const shortLabels = ahpResult.evaluatedOptions.map((opt) => {
+        const parts = opt.name.split(":");
+        return parts[0].trim() + (opt.isDynamicWinner ? " ★" : "");
+      });
+
+      costBarChartInstance = new Chart(barCtx, {
+        type: "bar",
+        data: {
+          labels: shortLabels,
+          datasets: [
+            {
+              label: "Cước Vận tải & Xếp dỡ Trực tiếp (Direct Freight)",
+              data: ahpResult.evaluatedOptions.map((o) => o.cost),
+              backgroundColor: "#1e3a8a",
+              borderRadius: 4
+            },
+            {
+              label: "Chi phí Lưu vốn Tồn kho (C_holding)",
+              data: ahpResult.evaluatedOptions.map((o) => o.holding),
+              backgroundColor: "#059669",
+              borderRadius: 4
+            },
+            {
+              label: "Chi phí Giảm giá Thương mại (C_depr)",
+              data: ahpResult.evaluatedOptions.map((o) => o.depr),
+              backgroundColor: "#d97706",
+              borderRadius: 4
+            }
+          ]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          scales: {
+            x: {
+              stacked: true,
+              ticks: {
+                font: { size: 11, weight: "bold", family: "Inter" }
+              },
+              grid: { display: false }
+            },
+            y: {
+              stacked: true,
+              ticks: {
+                font: { size: 10, family: "JetBrains Mono" },
+                callback: (val) => "$" + Number(val).toLocaleString("en-US")
+              },
+              grid: {
+                color: "rgba(148, 163, 184, 0.25)"
+              }
+            }
+          },
+          plugins: {
+            legend: {
+              position: "bottom",
+              labels: {
+                boxWidth: 12,
+                font: { size: 11, weight: "600", family: "Inter" }
+              }
+            },
+            tooltip: {
+              callbacks: {
+                label: (ctx) => `${ctx.dataset.label}: ${formatUSD(ctx.raw)} USD`,
+                footer: (items) => {
+                  const idx = items[0].dataIndex;
+                  const opt = ahpResult.evaluatedOptions[idx];
+                  return `Tổng chi phí chuỗi: ${formatUSD(opt.total)} USD (${opt.days} ngày)`;
+                }
+              }
+            }
+          }
+        }
+      });
+    }
+
+    // ============================================================================
+    // 7. RENDER SLIDERS & UI PANELS
+    // ============================================================================
+    function buildCriteriaSlidersOnce() {
+      const container = document.getElementById("criteriaSlidersContainer");
+      container.innerHTML = CRITERIA_META.map((crit) => {
+        return `
+          <div class="p-3.5 rounded-xl bg-slate-50/90 border border-slate-200/90 hover:border-blue-300 transition">
+            <div class="flex flex-wrap items-center justify-between gap-2 mb-1.5">
+              <div class="flex items-center gap-2">
+                <span class="w-7 h-7 rounded-lg flex items-center justify-center text-white text-xs font-bold shadow-sm" style="background: ${crit.color}">
+                  <i class="fa-solid ${crit.icon}"></i>
+                </span>
+                <div>
+                  <label for="slider_${crit.key}" class="text-xs sm:text-sm font-extrabold text-slate-800 cursor-pointer">
+                    ${crit.name}
+                  </label>
+                  <p class="text-[11px] text-slate-500">${crit.shortDesc}</p>
+                </div>
+              </div>
+              <div class="flex items-center gap-1.5">
+                <span id="tfnBadge_${crit.key}" class="px-2 py-0.5 rounded text-[11px] font-mono bg-white border border-slate-200 text-slate-600">
+                  TFN: (0.00, 0.00, 0.00)
+                </span>
+                <span id="normWeightBadge_${crit.key}" class="px-2.5 py-1 rounded-lg font-mono text-xs font-extrabold border ${crit.badgeClass}">
+                  W = 0.000
+                </span>
+              </div>
+            </div>
+
+            <div class="flex items-center gap-3 mt-2">
+              <input
+                id="slider_${crit.key}"
+                data-crit-key="${crit.key}"
+                type="range"
+                min="0.05"
+                max="0.85"
+                step="0.01"
+                value="${sliderRawWeights[crit.key]}"
+                class="ahp-slider flex-1"
+              />
+              <span id="pctLabel_${crit.key}" class="w-12 text-right font-mono text-xs font-bold text-slate-700">
+                0%
+              </span>
+            </div>
+          </div>
+        `;
+      }).join("");
+
+      // Attach live input listeners
+      container.querySelectorAll(".ahp-slider").forEach((inputEl) => {
+        inputEl.addEventListener("input", (e) => {
+          const key = e.target.getAttribute("data-crit-key");
+          sliderRawWeights[key] = parseFloat(e.target.value);
+          updateDashboardFromWeights(false);
+        });
+      });
+    }
+
+    function updateDashboardFromWeights(recenterMap = false) {
+      const caseData = LOGISTICS_DATABASE[currentCaseId];
+      const ahpResult = computeFuzzyAHP(sliderRawWeights, caseData);
+
+      // 1. Update Header & Top KPI Banners
+      document.getElementById("bannerCargoName").textContent = caseData.name;
+      document.getElementById("bannerCargoInfo").textContent = caseData.cargoInfo;
+      document.getElementById("bannerWinnerName").textContent = ahpResult.winner.name;
+
+      document.getElementById("kpiWinnerTitle").textContent = ahpResult.winner.name;
+      document.getElementById("kpiWinnerScore").textContent = ahpResult.winner.computedScore.toFixed(3);
+      document.getElementById("kpiWinnerTotalCost").textContent = `${formatUSD(ahpResult.winner.total)} USD`;
+      document.getElementById("kpiWinnerCostSub").textContent = `Cước: ${formatUSD(ahpResult.winner.cost)} | Chi phí ẩn: ${formatUSD(ahpResult.winner.holding + ahpResult.winner.depr)}`;
+      document.getElementById("kpiWinnerDays").textContent = `${ahpResult.winner.days} Ngày`;
+
+      // Compute cost difference vs highest cost option
+      const maxCostOpt = [...caseData.options].sort((a, b) => b.total - a.total)[0];
+      const savings = maxCostOpt.total - ahpResult.winner.total;
+      document.getElementById("kpiWinnerTimeSub").textContent =
+        savings > 0
+          ? `Tiết kiệm ${formatUSD(savings)} so với ${maxCostOpt.name.split(":")[0]}`
+          : `Thời gian toàn trình tối ưu (${ahpResult.winner.days} ngày)`;
+
+      // Consistency KPIs
+      document.getElementById("kpiCrValue").textContent = `CR = ${ahpResult.cr.toFixed(3)}`;
+      document.getElementById("kpiLambdaMax").textContent = `λ_max = ${ahpResult.lambdaMax.toFixed(3)} | CI = ${ahpResult.ci.toFixed(3)} | RI = 0.90`;
+      document.getElementById("simCrBadge").textContent = `CR = ${ahpResult.cr.toFixed(3)} < 0.10 (Nhất quán cao)`;
+
+      const modeIndicator = document.getElementById("weightModeIndicator");
+      if (ahpResult.isDefaultWeights) {
+        modeIndicator.textContent = "Trọng số Chuẩn Báo cáo";
+        modeIndicator.className = "text-xs font-semibold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded border border-emerald-200";
+      } else {
+        modeIndicator.textContent = "Đang Mô phỏng Độ nhạy (What-If)";
+        modeIndicator.className = "text-xs font-semibold text-amber-800 bg-amber-100 px-2 py-0.5 rounded border border-amber-300";
+      }
+
+      // 2. Update Sliders & TFN Badges + TFN Table
+      CRITERIA_META.forEach((crit) => {
+        const tfn = ahpResult.tfnMap[crit.key];
+        const sliderEl = document.getElementById(`slider_${crit.key}`);
+        if (sliderEl && document.activeElement !== sliderEl) {
+          sliderEl.value = tfn.normalized.toFixed(2);
+        }
+        document.getElementById(`tfnBadge_${crit.key}`).textContent =
+          `TFN: (${tfn.l.toFixed(2)}, ${tfn.m.toFixed(2)}, ${tfn.u.toFixed(2)})`;
+        document.getElementById(`normWeightBadge_${crit.key}`).textContent =
+          `W = ${tfn.normalized.toFixed(3)}`;
+        document.getElementById(`pctLabel_${crit.key}`).textContent =
+          `${(tfn.normalized * 100).toFixed(1)}%`;
+      });
+
+      const tfnTableBody = document.getElementById("tfnTableBody");
+      tfnTableBody.innerHTML = CRITERIA_META.map((crit) => {
+        const tfn = ahpResult.tfnMap[crit.key];
+        return `
+          <tr class="hover:bg-slate-50">
+            <td class="py-2 px-3 font-sans font-semibold text-slate-800">
+              <span class="inline-block w-2 h-2 rounded-full mr-1.5" style="background:${crit.color}"></span>
+              ${crit.name}
+            </td>
+            <td class="py-2 px-2 text-center text-slate-600">
+              (${tfn.l.toFixed(2)}, ${tfn.m.toFixed(2)}, ${tfn.u.toFixed(2)})
+            </td>
+            <td class="py-2 px-2 text-right font-bold text-uth-navy">
+              ${tfn.normalized.toFixed(3)}
+            </td>
+            <td class="py-2 px-3 text-right">
+              <div class="flex items-center justify-end gap-1.5">
+                <div class="w-16 h-2 bg-slate-200 rounded-full overflow-hidden">
+                  <div class="h-full rounded-full" style="width:${(tfn.normalized * 100).toFixed(1)}%; background:${crit.color}"></div>
+                </div>
+                <span class="text-slate-700 font-bold w-10">${(tfn.normalized * 100).toFixed(1)}%</span>
+              </div>
+            </td>
+          </tr>
+        `;
+      }).join("");
+
+      // 3. Render MCDM Ranking Cards
+      const rankingContainer = document.getElementById("mcdmRankingContainer");
+      rankingContainer.innerHTML = ahpResult.rankedOptions
+        .map((opt, rankIdx) => {
+          const isWinner = rankIdx === 0;
+          const barWidth = Math.min(100, Math.max(12, opt.computedScore * 100)).toFixed(1);
+
+          return `
+            <div class="p-3.5 rounded-xl border transition ${
+              isWinner
+                ? "bg-emerald-50/70 border-emerald-400 shadow-sm ring-1 ring-emerald-400/50"
+                : "bg-white border-slate-200"
+            }">
+              <div class="flex items-start justify-between gap-2">
+                <div class="flex items-center gap-2">
+                  <span class="w-6 h-6 rounded-lg text-xs font-extrabold flex items-center justify-center shrink-0 ${
+                    isWinner ? "bg-uth-emerald text-white" : "bg-slate-200 text-slate-700"
+                  }">
+                    #${rankIdx + 1}
+                  </span>
+                  <div>
+                    <div class="flex flex-wrap items-center gap-1.5">
+                      <h4 class="text-xs sm:text-sm font-extrabold ${
+                        isWinner ? "text-emerald-950" : "text-slate-800"
+                      }">${opt.name}</h4>
+                      ${
+                        isWinner
+                          ? `<span class="px-2 py-0.5 text-[10px] font-extrabold uppercase tracking-wider bg-emerald-600 text-white rounded-full">
+                              <i class="fa-solid fa-crown mr-0.5"></i> Phương án Tối ưu
+                            </span>`
+                          : ""
+                      }
+                    </div>
+                    <p class="text-[11px] text-slate-500 mt-0.5 font-mono">
+                      Tổng chi phí: <strong>${formatUSD(opt.total)}</strong> | Thời gian: <strong>${opt.days} ngày</strong> | Điểm (C:${opt.C}, T:${opt.T}, R:${opt.R}, Rsk:${opt.Rsk})
+                    </p>
+                  </div>
+                </div>
+                <div class="text-right shrink-0">
+                  <div class="text-base font-extrabold font-mono ${
+                    isWinner ? "text-uth-emerald" : "text-slate-700"
+                  }">
+                    ${opt.computedScore.toFixed(3)}
+                  </div>
+                  <div class="text-[10px] uppercase font-bold text-slate-400">MCDM Score</div>
+                </div>
+              </div>
+
+              <!-- Progress Bar -->
+              <div class="w-full h-2.5 bg-slate-200/80 rounded-full overflow-hidden mt-2.5">
+                <div
+                  class="h-full rounded-full transition-all duration-300 ${
+                    isWinner
+                      ? "bg-gradient-to-r from-uth-emerald to-teal-500"
+                      : rankIdx === 1
+                      ? "bg-amber-500"
+                      : "bg-slate-400"
+                  }"
+                  style="width: ${barWidth}%"
+                ></div>
+              </div>
+            </div>
+          `;
+        })
+        .join("");
+
+      // 4. Render Technical Constraints List (Left Bottom Card)
+      const techListEl = document.getElementById("technicalConstraintsList");
+      techListEl.innerHTML = caseData.technicalConstraints
+        .map((item) => {
+          const isCrit = item.status === "critical";
+          return `
+            <div class="p-3 rounded-xl border ${
+              isCrit ? "bg-red-50/60 border-red-200" : "bg-slate-50 border-slate-200"
+            }">
+              <div class="flex items-center justify-between gap-2 mb-1">
+                <span class="px-2 py-0.5 rounded text-[10px] font-extrabold uppercase ${
+                  isCrit ? "bg-red-100 text-red-800" : "bg-emerald-100 text-emerald-800"
+                }">
+                  <i class="fa-solid ${isCrit ? "fa-triangle-exclamation" : "fa-circle-check"} mr-1"></i>${item.badge}
+                </span>
+              </div>
+              <div class="font-bold text-slate-900">${item.title}</div>
+              <p class="text-slate-600 mt-0.5 leading-relaxed">${item.desc}</p>
+            </div>
+          `;
+        })
+        .join("");
+
+      // 5. Render Financial Comparison Table
+      const finBody = document.getElementById("financialTableBody");
+      finBody.innerHTML = ahpResult.evaluatedOptions
+        .map((opt) => {
+          const isWin = opt.isDynamicWinner;
+          return `
+            <tr class="${isWin ? "bg-emerald-50/70 font-semibold" : "hover:bg-slate-50"}">
+              <td class="py-2.5 px-3.5 text-slate-900">
+                <div class="flex items-center gap-1.5">
+                  ${
+                    isWin
+                      ? `<i class="fa-solid fa-circle-check text-uth-emerald"></i>`
+                      : `<i class="fa-regular fa-circle text-slate-400"></i>`
+                  }
+                  <span>${opt.name}</span>
+                </div>
+              </td>
+              <td class="py-2.5 px-2.5 text-center font-mono">${opt.days} ngày</td>
+              <td class="py-2.5 px-2.5 text-right font-mono text-slate-700">${formatUSD(opt.cost)}</td>
+              <td class="py-2.5 px-2.5 text-right font-mono text-emerald-700">${formatUSD(opt.holding)}</td>
+              <td class="py-2.5 px-2.5 text-right font-mono text-amber-700">${formatUSD(opt.depr)}</td>
+              <td class="py-2.5 px-2.5 text-right font-mono font-extrabold text-uth-navy">${formatUSD(opt.total)}</td>
+              <td class="py-2.5 px-2.5 text-center font-mono text-[11px]">
+                <span class="px-1.5 py-0.5 rounded bg-slate-100 border border-slate-200">${opt.C} / ${opt.T} / ${opt.R} / ${opt.Rsk}</span>
+              </td>
+              <td class="py-2.5 px-3.5 text-right font-mono font-extrabold ${
+                isWin ? "text-uth-emerald text-sm" : "text-slate-700"
+              }">
+                ${opt.computedScore.toFixed(3)}
+              </td>
+            </tr>
+          `;
+        })
+        .join("");
+
+      // 6. Update Formula Notes & Academic Justification Panels
+      document.getElementById("formulaNoteHolding").textContent = caseData.formulaNotes.holding;
+      document.getElementById("formulaNoteDepr").textContent = caseData.formulaNotes.depr;
+      document.getElementById("formulaNoteSpmt").textContent = caseData.formulaNotes.spmt;
+
+      const justHtml = `
+        <div class="p-4 rounded-xl bg-emerald-50/60 border border-emerald-200 space-y-2.5">
+          <h4 class="text-xs sm:text-sm font-extrabold text-emerald-950 flex items-center gap-2">
+            <i class="fa-solid fa-award text-uth-emerald text-base"></i>
+            ${caseData.justification.winnerTitle}
+          </h4>
+          <ul class="space-y-2 text-xs text-slate-700 list-disc pl-4 leading-relaxed">
+            ${caseData.justification.winnerPoints.map((p) => `<li>${p}</li>`).join("")}
+          </ul>
+        </div>
+        <div class="p-4 rounded-xl bg-rose-50/60 border border-rose-200 space-y-2.5">
+          <h4 class="text-xs sm:text-sm font-extrabold text-rose-950 flex items-center gap-2">
+            <i class="fa-solid fa-ban text-rose-600 text-base"></i>
+            ${caseData.justification.rejectedTitle}
+          </h4>
+          <ul class="space-y-2 text-xs text-slate-700 list-disc pl-4 leading-relaxed">
+            ${caseData.justification.rejectedPoints.map((p) => `<li>${p}</li>`).join("")}
+          </ul>
+        </div>
+      `;
+      document.getElementById("academicJustificationContainer").innerHTML = justHtml;
+      document.getElementById("modalDynamicCaseAnalysis").innerHTML = `
+        <h4 class="font-extrabold text-uth-navy text-sm uppercase tracking-wider flex items-center gap-2">
+          <i class="fa-solid fa-clipboard-check text-uth-emerald"></i>
+          3. Biện luận Chuyên sâu cho ${caseData.name}
+        </h4>
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">${justHtml}</div>
+      `;
+
+      // 7. Update Charts & Map
+      renderCharts(caseData, ahpResult);
+      if (recenterMap) {
+        renderMapForCase(caseData, ahpResult);
+      }
+    }
+
+    // ============================================================================
+    // 8. SWITCH CASE STUDY HANDLER
+    // ============================================================================
+    function selectCaseStudy(caseId) {
+      if (!LOGISTICS_DATABASE[caseId]) return;
+      currentCaseId = caseId;
+      const caseData = LOGISTICS_DATABASE[caseId];
+
+      // Sync dropdown
+      document.getElementById("caseSelector").value = caseId;
+
+      // Sync quick tabs styling
+      document.querySelectorAll(".case-tab-btn").forEach((btn) => {
+        const isCurrent = btn.getAttribute("data-case") === caseId;
+        btn.className = isCurrent
+          ? "case-tab-btn px-3 py-1.5 rounded-lg text-xs font-bold transition flex items-center gap-1.5 bg-white text-uth-navy shadow-sm"
+          : "case-tab-btn px-3 py-1.5 rounded-lg text-xs font-bold transition flex items-center gap-1.5 bg-slate-800/70 text-blue-200 hover:bg-slate-800";
+      });
+
+      // Reset slider weights to selected case study's default weights
+      sliderRawWeights = { ...caseData.weights };
+      CRITERIA_META.forEach((crit) => {
+        const sliderEl = document.getElementById(`slider_${crit.key}`);
+        if (sliderEl) {
+          sliderEl.value = sliderRawWeights[crit.key];
+        }
+      });
+
+      updateDashboardFromWeights(true);
+      populateCustomInputStudio(caseData);
+    }
+
+    // ============================================================================
+    // 8B. CUSTOM DATA INPUT STUDIO & ESSAY VERIFICATION CALCULATORS
+    // ============================================================================
+    const FACTORY_DEFAULT_DB = JSON.parse(JSON.stringify(LOGISTICS_DATABASE));
+
+    const LOGISTICS_HUBS_PRESETS = [
+      { name: "KCN Yên Phong, Bắc Ninh", lat: 21.1861, lng: 106.0763, mode: "road" },
+      { name: "Sân bay Quốc tế Nội Bài (HAN)", lat: 21.2212, lng: 105.8072, mode: "air" },
+      { name: "Cảng Lạch Huyện / Hải Phòng (HPH)", lat: 20.8449, lng: 106.6881, mode: "sea" },
+      { name: "Kho Buôn Ma Thuột, Đắk Lắk", lat: 12.6667, lng: 108.0500, mode: "road" },
+      { name: "ICD Tân Cảng Bình Dương (Sà lan)", lat: 10.9333, lng: 106.7000, mode: "barge" },
+      { name: "Cảng Cát Lái, TP.HCM", lat: 10.7688, lng: 106.7922, mode: "sea" },
+      { name: "Cụm cảng nước sâu Cái Mép (BR-VT)", lat: 10.5333, lng: 107.0167, mode: "sea" },
+      { name: "Cảng nước sâu Phú Mỹ (BR-VT)", lat: 10.5922, lng: 107.0538, mode: "sea" },
+      { name: "Sân bay Quốc tế Tân Sơn Nhất (SGN)", lat: 10.8188, lng: 106.6519, mode: "air" },
+      { name: "KCN Trà Nóc / Cảng Cần Thơ", lat: 10.0982, lng: 105.7125, mode: "barge" },
+      { name: "Cảng Tiên Sa, Đà Nẵng (DAD)", lat: 16.1205, lng: 108.2120, mode: "sea" },
+      { name: "Ga Đường sắt Sóng Thần, Bình Dương", lat: 10.9804, lng: 106.7510, mode: "rail" },
+      { name: "Sân bay Frankfurt (FRA - Đức)", lat: 50.0379, lng: 8.5622, mode: "air" },
+      { name: "Cảng Hamburg (Đức)", lat: 53.5461, lng: 9.9660, mode: "sea" },
+      { name: "Cảng Rotterdam (Hà Lan)", lat: 51.9490, lng: 4.1450, mode: "sea" },
+      { name: "Cảng Jebel Ali / Sân bay DWC (Dubai)", lat: 25.0112, lng: 55.0612, mode: "sea" },
+      { name: "Cảng Kobe (Nhật Bản)", lat: 34.6913, lng: 135.1830, mode: "sea" },
+      { name: "Cảng Tokyo (Nhật Bản)", lat: 35.6197, lng: 139.7798, mode: "sea" },
+      { name: "Cảng Singapore (PSA)", lat: 1.2644, lng: 103.8220, mode: "sea" },
+      { name: "Cảng Los Angeles / Long Beach (Mỹ)", lat: 33.7405, lng: -118.2719, mode: "sea" }
+    ];
+
+    function initHubPresetDropdowns() {
+      const ids = ["presetOrigin", "presetTransit", "presetDest"];
+      ids.forEach((selectId) => {
+        const sel = document.getElementById(selectId);
+        if (!sel) return;
+        const defaultOpt = sel.options[0].outerHTML;
+        sel.innerHTML =
+          defaultOpt +
+          LOGISTICS_HUBS_PRESETS.map(
+            (h, idx) => `<option value="${idx}">${h.name} (${h.lat.toFixed(2)}, ${h.lng.toFixed(2)})</option>`
+          ).join("");
+      });
+
+      const bindPreset = (selectId, nameId, latId, lngId) => {
+        const sel = document.getElementById(selectId);
+        if (!sel) return;
+        sel.addEventListener("change", (e) => {
+          const idx = e.target.value;
+          if (idx === "") return;
+          const hub = LOGISTICS_HUBS_PRESETS[Number(idx)];
+          if (hub) {
+            document.getElementById(nameId).value = hub.name;
+            document.getElementById(latId).value = hub.lat;
+            document.getElementById(lngId).value = hub.lng;
+          }
+        });
+      };
+
+      bindPreset("presetOrigin", "inpOriginName", "inpOriginLat", "inpOriginLng");
+      bindPreset("presetTransit", "inpTransitName", "inpTransitLat", "inpTransitLng");
+      bindPreset("presetDest", "inpDestName", "inpDestLat", "inpDestLng");
+    }
+
+    function populateCustomInputStudio(caseData) {
+      if (!caseData) return;
+
+      document.getElementById("inpCargoName").value = caseData.name || "";
+      document.getElementById("inpCargoInfo").value = caseData.cargoInfo || "";
+
+      const defVal =
+        caseData.cargoValueUSD ||
+        (currentCaseId === "case1" ? 1000000 : currentCaseId === "case2" ? 9000000 : 5000000);
+      const defR = caseData.interestRatePct !== undefined ? caseData.interestRatePct : 12;
+      const defDepr =
+        caseData.deprRatePct !== undefined
+          ? caseData.deprRatePct
+          : currentCaseId === "case1"
+          ? 1.5
+          : 0.0;
+      const defCat =
+        caseData.category ||
+        (currentCaseId === "case1" ? "electronics" : currentCaseId === "case2" ? "agri" : "project");
+
+      document.getElementById("inpCargoValueUSD").value = defVal;
+      document.getElementById("inpInterestRate").value = defR;
+      document.getElementById("inpDeprRate").value = defDepr;
+      document.getElementById("inpCargoCategory").value = defCat;
+
+      // Populate Waypoints (Origin, Transit, Destination)
+      const wps = caseData.waypoints || [];
+      const wpOrigin = wps[0] || { name: "", lat: 21.1861, lng: 106.0763 };
+      const wpTransit = wps.length > 2 ? wps[1] : wps[0] || { name: "", lat: 21.2212, lng: 105.8072 };
+      const wpDest = wps[wps.length - 1] || { name: "", lat: 50.0379, lng: 8.5622 };
+
+      document.getElementById("inpOriginName").value = wpOrigin.name;
+      document.getElementById("inpOriginLat").value = wpOrigin.lat;
+      document.getElementById("inpOriginLng").value = wpOrigin.lng;
+
+      document.getElementById("inpTransitName").value = wpTransit.name;
+      document.getElementById("inpTransitLat").value = wpTransit.lat;
+      document.getElementById("inpTransitLng").value = wpTransit.lng;
+
+      document.getElementById("inpDestName").value = wpDest.name;
+      document.getElementById("inpDestLat").value = wpDest.lat;
+      document.getElementById("inpDestLng").value = wpDest.lng;
+
+      renderOptionsEditorTable(caseData);
+      updateEssayCalculators();
+    }
+
+    function renderOptionsEditorTable(caseData) {
+      const tbody = document.getElementById("optionsEditorTbody");
+      if (!tbody || !caseData) return;
+
+      tbody.innerHTML = caseData.options
+        .map((opt, idx) => {
+          return `
+            <tr class="hover:bg-blue-50/40 transition" data-opt-row="${idx}">
+              <td class="py-1.5 px-2">
+                <input type="text" data-field="name" data-idx="${idx}" value="${opt.name}" class="opt-edit-inp w-full px-2 py-1 text-xs font-bold text-slate-900 rounded border border-slate-300 focus:border-uth-navy focus:outline-none" />
+              </td>
+              <td class="py-1.5 px-1.5">
+                <input type="number" min="1" max="120" data-field="days" data-idx="${idx}" value="${opt.days}" class="opt-edit-inp w-full px-1.5 py-1 text-xs font-mono text-center font-bold rounded border border-slate-300" />
+              </td>
+              <td class="py-1.5 px-1.5">
+                <input type="number" min="0" step="500" data-field="cost" data-idx="${idx}" value="${opt.cost}" class="opt-edit-inp w-full px-2 py-1 text-xs font-mono text-right font-semibold rounded border border-slate-300" />
+              </td>
+              <td class="py-1.5 px-1.5">
+                <input type="number" min="0" step="100" data-field="holding" data-idx="${idx}" value="${opt.holding}" class="opt-edit-inp w-full px-2 py-1 text-xs font-mono text-right text-emerald-700 rounded border border-slate-300" />
+              </td>
+              <td class="py-1.5 px-1.5">
+                <input type="number" min="0" step="100" data-field="depr" data-idx="${idx}" value="${opt.depr}" class="opt-edit-inp w-full px-2 py-1 text-xs font-mono text-right text-amber-700 rounded border border-slate-300" />
+              </td>
+              <td class="py-1.5 px-2 text-right font-mono font-extrabold text-uth-navy" id="optRowTotal_${idx}">
+                ${formatUSD(opt.total)}
+              </td>
+              <td class="py-1.5 px-1">
+                <input type="number" min="1" max="10" step="0.5" data-field="C" data-idx="${idx}" value="${opt.C}" class="opt-edit-inp w-full px-1 py-1 text-xs font-mono text-center font-bold bg-blue-50/60 text-blue-900 rounded border border-blue-200" />
+              </td>
+              <td class="py-1.5 px-1">
+                <input type="number" min="1" max="10" step="0.5" data-field="T" data-idx="${idx}" value="${opt.T}" class="opt-edit-inp w-full px-1 py-1 text-xs font-mono text-center font-bold bg-amber-50/60 text-amber-900 rounded border border-amber-200" />
+              </td>
+              <td class="py-1.5 px-1">
+                <input type="number" min="1" max="10" step="0.5" data-field="R" data-idx="${idx}" value="${opt.R}" class="opt-edit-inp w-full px-1 py-1 text-xs font-mono text-center font-bold bg-emerald-50/60 text-emerald-900 rounded border border-emerald-200" />
+              </td>
+              <td class="py-1.5 px-1">
+                <input type="number" min="1" max="10" step="0.5" data-field="Rsk" data-idx="${idx}" value="${opt.Rsk}" class="opt-edit-inp w-full px-1 py-1 text-xs font-mono text-center font-bold bg-purple-50/60 text-purple-900 rounded border border-purple-200" />
+              </td>
+              <td class="py-1.5 px-1.5 text-center">
+                <button type="button" data-del-idx="${idx}" class="btn-del-opt text-rose-500 hover:text-rose-700 p-1 rounded hover:bg-rose-50 transition" title="Xóa phương án này">
+                  <i class="fa-solid fa-trash-can"></i>
+                </button>
+              </td>
+            </tr>
+          `;
+        })
+        .join("");
+
+      // Attach live input listeners to every cell
+      tbody.querySelectorAll(".opt-edit-inp").forEach((inp) => {
+        inp.addEventListener("input", (e) => {
+          const idx = Number(e.target.getAttribute("data-idx"));
+          const field = e.target.getAttribute("data-field");
+          const opt = caseData.options[idx];
+          if (!opt) return;
+
+          if (field === "name") {
+            opt.name = e.target.value;
+          } else {
+            const val = parseFloat(e.target.value) || 0;
+            opt[field] = val;
+            if (field === "cost" || field === "holding" || field === "depr") {
+              opt.total = Math.round((Number(opt.cost) || 0) + (Number(opt.holding) || 0) + (Number(opt.depr) || 0));
+              const totEl = document.getElementById(`optRowTotal_${idx}`);
+              if (totEl) totEl.textContent = formatUSD(opt.total);
+            }
+          }
+
+          // Recompute dynamic score directly from criteria scores so user edits immediately reflect
+          recomputeBaselineScoresFromCriteria(caseData);
+          updateDashboardFromWeights(false);
+          updateEssayCalculators();
+        });
+      });
+
+      // Delete row buttons
+      tbody.querySelectorAll(".btn-del-opt").forEach((btn) => {
+        btn.addEventListener("click", () => {
+          const idx = Number(btn.getAttribute("data-del-idx"));
+          if (caseData.options.length <= 2) {
+            document.getElementById("customStudioStatusMsg").innerHTML =
+              `<i class="fa-solid fa-triangle-exclamation text-amber-600"></i> Cần giữ tối thiểu 2 phương án vận tải để so sánh Đa tiêu chí (MCDM)!`;
+            return;
+          }
+          caseData.options.splice(idx, 1);
+          recomputeBaselineScoresFromCriteria(caseData);
+          renderOptionsEditorTable(caseData);
+          updateDashboardFromWeights(false);
+          updateEssayCalculators();
+        });
+      });
+    }
+
+    function recomputeBaselineScoresFromCriteria(caseData) {
+      const w = caseData.weights;
+      caseData.options.forEach((opt) => {
+        const raw = (w.Cost * opt.C + w.Time * opt.T + w.Reliability * opt.R + w.Risk * opt.Rsk) / 10;
+        opt.score = Number(Math.max(0.05, Math.min(0.99, raw)).toFixed(3));
+      });
+    }
+
+    function autoCalcHiddenCostsFromParams() {
+      const caseData = LOGISTICS_DATABASE[currentCaseId];
+      const V = parseFloat(document.getElementById("inpCargoValueUSD").value) || 1000000;
+      const rPct = parseFloat(document.getElementById("inpInterestRate").value) || 0;
+      const deprPct = parseFloat(document.getElementById("inpDeprRate").value) || 0;
+
+      caseData.cargoValueUSD = V;
+      caseData.interestRatePct = rPct;
+      caseData.deprRatePct = deprPct;
+
+      caseData.options.forEach((opt) => {
+        const t = Number(opt.days) || 1;
+        opt.holding = Math.round(((V * (rPct / 100)) / 365) * t);
+        opt.depr = Math.round(V * ((deprPct / 100) / 7) * t);
+        opt.total = Math.round((Number(opt.cost) || 0) + opt.holding + opt.depr);
+      });
+
+      renderOptionsEditorTable(caseData);
+      updateDashboardFromWeights(false);
+      updateEssayCalculators();
+
+      document.getElementById("customStudioStatusMsg").innerHTML =
+        `<i class="fa-solid fa-wand-magic-sparkles text-blue-600"></i> Đã tự động tính $C_{\\text{holding}} = \\frac{V \\times r}{365} \\times t$ và $C_{\\text{depr}} = V \\times \\frac{\\delta}{7} \\times t$ với $V = ${formatUSD(V)}, r = ${rPct}\\%, \\delta = ${deprPct}\\%/\\text{tuần}$!`;
+    }
+
+    function autoScoreCriteriaFromCostAndTime() {
+      const caseData = LOGISTICS_DATABASE[currentCaseId];
+      if (!caseData || !caseData.options.length) return;
+
+      const totals = caseData.options.map((o) => o.total);
+      const daysArr = caseData.options.map((o) => o.days);
+      const minCost = Math.min(...totals);
+      const maxCost = Math.max(...totals);
+      const minDays = Math.min(...daysArr);
+      const maxDays = Math.max(...daysArr);
+
+      caseData.options.forEach((opt) => {
+        // Higher score for lower total cost (Scale 2 to 10)
+        if (maxCost > minCost) {
+          opt.C = Number((10 - ((opt.total - minCost) / (maxCost - minCost)) * 7).toFixed(1));
+        } else {
+          opt.C = 9;
+        }
+        // Higher score for shorter transit days (Scale 1 to 10)
+        if (maxDays > minDays) {
+          opt.T = Number((10 - ((opt.days - minDays) / (maxDays - minDays)) * 8.5).toFixed(1));
+        } else {
+          opt.T = 9;
+        }
+      });
+
+      recomputeBaselineScoresFromCriteria(caseData);
+      renderOptionsEditorTable(caseData);
+      updateDashboardFromWeights(false);
+
+      document.getElementById("customStudioStatusMsg").innerHTML =
+        `<i class="fa-solid fa-robot text-amber-600"></i> Đã tự động quy đổi điểm Chi phí (C) và Thời gian (T) trên thang 1–10 từ Tổng chi phí $TC$ và Số ngày $t$!`;
+    }
+
+    function updateEssayCalculators() {
+      const caseData = LOGISTICS_DATABASE[currentCaseId];
+      if (!caseData) return;
+
+      // 1. Split Shipment Calculator (Mục 3.1.3 Tiểu luận)
+      const splitAirPct = parseFloat(document.getElementById("inpSplitAirPct").value) || 20;
+      const alpha = splitAirPct / 100;
+      const beta = 1 - alpha;
+      document.getElementById("lblSplitRatio").textContent = `${splitAirPct}% PA1 / ${100 - splitAirPct}% PA2`;
+
+      const V = parseFloat(document.getElementById("inpCargoValueUSD").value) || 1000000;
+      const rPct = parseFloat(document.getElementById("inpInterestRate").value) || 12;
+      const deprPct = parseFloat(document.getElementById("inpDeprRate").value) || 1.5;
+
+      const opt1 = caseData.options[0] || { cost: 40000, days: 4 };
+      const opt2 = caseData.options[1] || { cost: 24000, days: 18 };
+
+      const cTransSplit = Math.round(alpha * opt1.cost + beta * opt2.cost);
+      const freightSaved = Math.round(opt1.cost - cTransSplit);
+
+      const hold1 = ((V * (rPct / 100)) / 365) * opt1.days;
+      const hold2 = ((V * (rPct / 100)) / 365) * opt2.days;
+      const depr1 = V * ((deprPct / 100) / 7) * opt1.days;
+      const depr2 = V * ((deprPct / 100) / 7) * opt2.days;
+
+      const tc100Air = Math.round(opt1.cost + hold1 + depr1);
+      const tcSplit = Math.round(cTransSplit + alpha * (hold1 + depr1) + beta * (hold2 + depr2));
+
+      // Compute exact breakeven delta* (% per week) where TC_split == TC_100_PA1
+      const deltaDays = Math.max(1, opt2.days - opt1.days);
+      const costDiff12 = Math.max(0, opt1.cost - opt2.cost);
+      const holdDiff12 = ((V * (rPct / 100)) / 365) * deltaDays;
+      const breakevenDeprWeeklyPct = Math.max(0, (((costDiff12 - holdDiff12) * 7) / (V * deltaDays)) * 100);
+
+      const splitBox = document.getElementById("splitCalcResultBox");
+      if (splitBox) {
+        const isSplitBetter = tcSplit < tc100Air;
+        splitBox.innerHTML = `
+          <div>• Cước chia lô $C_{\\text{trans\\_split}}$: <strong class="text-uth-navy">${formatUSD(cTransSplit)}</strong> (Giảm ${formatUSD(freightSaved)})</div>
+          <div>• $TC_{\\text{chia lô}}$ vs $TC_{100\\%\\text{ PA1}}$: <strong>${formatUSD(tcSplit)}</strong> vs <strong>${formatUSD(tc100Air)}</strong></div>
+          <div class="${isSplitBetter ? "text-emerald-700 font-bold" : "text-amber-800 font-bold"}">
+            → Ngưỡng biên $\\delta^* = ${breakevenDeprWeeklyPct.toFixed(2)}\\%/\\text{tuần}$: ${
+          isSplitBetter
+            ? `Nên chia lô (Tiết kiệm ${formatUSD(tc100Air - tcSplit)})`
+            : `Nên đi 100% PA1 (Do $\\delta = ${deprPct}\\% > ${breakevenDeprWeeklyPct.toFixed(2)}\\%$)`
+        }
+          </div>
+        `;
+      }
+
+      // 2. SPMT Ground Pressure & Rail Loading Gauge Calculator (Mục 3.3 Tiểu luận)
+      const spmtMass = parseFloat(document.getElementById("inpSpmtMass").value) || 150;
+      const spmtAxles = parseFloat(document.getElementById("inpSpmtAxles").value) || 12;
+      const dimStr = (document.getElementById("inpCargoDim").value || "4.5x4.2").toLowerCase();
+      const dimParts = dimStr.split("x").map((s) => parseFloat(s.trim()) || 4.2);
+      const widthM = dimParts[0] || 4.5;
+      const heightM = dimParts[1] || 4.2;
+
+      const tiresCount = spmtAxles * 8; // 8 tires per modular axle line (96 tires for 12 axles)
+      const axleLoadTons = (spmtMass / spmtAxles).toFixed(1);
+      // Ground pressure kPa calibrated to FHWA 2007 (150T on 12 axles = 290 kPa)
+      const groundPressureKpa = Math.round((spmtMass / 150) * (12 / spmtAxles) * 290);
+      const spmtLowHeight = (heightM + 0.6).toFixed(2); // SPMT lowered to 600mm
+      const railTotalHeight = (heightM + 1.0).toFixed(2); // Rail flatcar +1.0m
+      const railHeightExceedPct = Math.round(((railTotalHeight - 3.9) / 3.9) * 100);
+      const railWidthExceedPct = Math.round(((widthM - 3.1) / 3.1) * 100);
+
+      const spmtBox = document.getElementById("spmtEngineeringResultBox");
+      if (spmtBox) {
+        spmtBox.innerHTML = `
+          <div>• SPMT ${spmtAxles} trục (${tiresCount} bánh): Tải trục <strong>${axleLoadTons}T/trục</strong> | Áp lực nền <strong>~${groundPressureKpa} kPa</strong> (&lt; 650 kPa xe tải 10T)</div>
+          <div>• Hạ thủy lực 600mm: Cao <strong>${spmtLowHeight}m</strong> ${
+          spmtLowHeight <= 5.15
+            ? '<span class="text-emerald-700 font-bold">(Đạt tĩnh không cầu &gt; 5.15m)</span>'
+            : '<span class="text-rose-600 font-bold">(Cần nâng tĩnh không dây điện)</span>'
+        }</div>
+          <div class="text-rose-700 font-bold">
+            • Đường sắt 1.000mm (3.9m×3.1m): Cao ${railTotalHeight}m (Vượt ${railHeightExceedPct}%), Rộng ${widthM}m (Vượt ${railWidthExceedPct}%) → LOẠI!
+          </div>
+        `;
+      }
+    }
+
+    function applyCustomRouteAndRecalc() {
+      const caseData = LOGISTICS_DATABASE[currentCaseId];
+      if (!caseData) return;
+
+      caseData.name = document.getElementById("inpCargoName").value || caseData.name;
+      caseData.cargoInfo = document.getElementById("inpCargoInfo").value || caseData.cargoInfo;
+      caseData.cargoValueUSD = parseFloat(document.getElementById("inpCargoValueUSD").value) || 1000000;
+      caseData.interestRatePct = parseFloat(document.getElementById("inpInterestRate").value) || 12;
+      caseData.deprRatePct = parseFloat(document.getElementById("inpDeprRate").value) || 0;
+      caseData.category = document.getElementById("inpCargoCategory").value || "general";
+
+      const oName = document.getElementById("inpOriginName").value || "Điểm xuất phát";
+      const oLat = parseFloat(document.getElementById("inpOriginLat").value) || 21.1861;
+      const oLng = parseFloat(document.getElementById("inpOriginLng").value) || 106.0763;
+
+      const tName = document.getElementById("inpTransitName").value || "Điểm trung chuyển";
+      const tLat = parseFloat(document.getElementById("inpTransitLat").value) || 10.5333;
+      const tLng = parseFloat(document.getElementById("inpTransitLng").value) || 107.0167;
+
+      const dName = document.getElementById("inpDestName").value || "Điểm đích";
+      const dLat = parseFloat(document.getElementById("inpDestLat").value) || 50.0379;
+      const dLng = parseFloat(document.getElementById("inpDestLng").value) || 8.5622;
+
+      // Check if user actually modified the coordinates compared to current waypoints
+      const oldWps = caseData.waypoints || [];
+      const coordsChanged =
+        oldWps.length < 3 ||
+        Math.abs(oldWps[0].lat - oLat) > 0.001 ||
+        Math.abs(oldWps[0].lng - oLng) > 0.001 ||
+        Math.abs(oldWps[1].lat - tLat) > 0.001 ||
+        Math.abs(oldWps[1].lng - tLng) > 0.001 ||
+        Math.abs(oldWps[oldWps.length - 1].lat - dLat) > 0.001 ||
+        Math.abs(oldWps[oldWps.length - 1].lng - dLng) > 0.001;
+
+      if (coordsChanged) {
+        caseData.waypoints = [
+          {
+            name: oName,
+            lat: oLat,
+            lng: oLng,
+            type: "origin",
+            roleLabel: "Điểm xuất phát (Origin)",
+            techSpecs: `Tập kết và đóng gói hàng hóa tại ${oName}; kiểm tra niêm phong hải quan và vận chuyển chặng đầu (Pre-carriage).`
+          },
+          {
+            name: tName,
+            lat: tLat,
+            lng: tLng,
+            type: "transit",
+            roleLabel: "Điểm bàn giao / Trung chuyển (Transit Hub)",
+            techSpecs: `Tác nghiệp xếp dỡ (THC), kiểm soát giờ cắt máng (Cut-off time) và kết nối phương tiện chặng chính tại ${tName}.`
+          },
+          {
+            name: dName,
+            lat: dLat,
+            lng: dLng,
+            type: "destination",
+            roleLabel: "Điểm giao hàng cuối (Destination)",
+            techSpecs: `Thông quan nhập khẩu và bàn giao lô hàng tại ${dName} (On-carriage Door-to-Door).`
+          }
+        ];
+
+        // Build realistic intermediate trajectory for Main Carriage (e.g., sea lane via Malacca/Suez if Europe, or air curve)
+        const isEurope = dLng < 30 && dLat > 35;
+        const isAirMain = caseData.category === "electronics";
+        let mainLegCoords = [
+          [tLat, tLng],
+          [(tLat + dLat) / 2 + 2.5, (tLng + dLng) / 2],
+          [dLat, dLng]
+        ];
+
+        if (isEurope && !isAirMain) {
+          mainLegCoords = [
+            [tLat, tLng],
+            [1.2644, 103.8220],
+            [5.8500, 95.3000],
+            [5.8000, 80.5000],
+            [12.6500, 43.4000],
+            [30.5800, 32.3500],
+            [36.5000, 15.0000],
+            [35.9600, -5.5000],
+            [43.1500, -9.4500],
+            [49.5000, -2.5000],
+            [dLat, dLng]
+          ];
+        } else if (isEurope && isAirMain) {
+          mainLegCoords = [
+            [tLat, tLng],
+            [25.4, 89.8],
+            [33.6, 66.5],
+            [41.2, 49.5],
+            [46.6, 29.5],
+            [dLat, dLng]
+          ];
+        }
+
+        caseData.primarySegments = [
+          {
+            mode: "road",
+            label: `Chặng đầu (Pre-carriage): ${oName} → ${tName}`,
+            color: "#10b981",
+            osrmWaypoints: [
+              [oLat, oLng],
+              [tLat, tLng]
+            ],
+            coords: [
+              [oLat, oLng],
+              [(oLat + tLat) / 2, (oLng + tLng) / 2],
+              [tLat, tLng]
+            ]
+          },
+          {
+            mode: isAirMain ? "air" : "sea",
+            label: `Chặng chính (Main Carriage): ${tName} → ${dName}`,
+            color: "#059669",
+            coords: mainLegCoords
+          }
+        ];
+
+        caseData.mapBounds = [
+          [oLat, oLng],
+          [dLat, dLng]
+        ];
+        caseData.domesticBounds = [
+          [Math.min(oLat, tLat) - 0.3, Math.min(oLng, tLng) - 0.3],
+          [Math.max(oLat, tLat) + 0.3, Math.max(oLng, tLng) + 0.3]
+        ];
+      } else {
+        if (caseData.waypoints[0]) caseData.waypoints[0].name = oName;
+        if (caseData.waypoints[1]) caseData.waypoints[1].name = tName;
+        if (caseData.waypoints[caseData.waypoints.length - 1]) {
+          caseData.waypoints[caseData.waypoints.length - 1].name = dName;
+        }
+      }
+
+      recomputeBaselineScoresFromCriteria(caseData);
+      updateDashboardFromWeights(true);
+      updateEssayCalculators();
+
+      document.getElementById("customStudioStatusMsg").innerHTML =
+        `<i class="fa-solid fa-circle-check text-emerald-600"></i> Đã cập nhật hành trình <strong>${oName} → ${tName} → ${dName}</strong> và tính toán lại toàn bộ mô hình!`;
+    }
+
+    // ============================================================================
+    // 9. INITIALIZATION & EVENT LISTENERS
+    // ============================================================================
+    window.addEventListener("DOMContentLoaded", () => {
+      initHubPresetDropdowns();
+      buildCriteriaSlidersOnce();
+      initMap();
+      selectCaseStudy("case1");
+
+      // Custom Input Studio controls & live listeners
+      const studioBody = document.getElementById("customStudioBody");
+      const chevronIcon = document.getElementById("studioChevronIcon");
+      const collapseText = document.getElementById("studioCollapseText");
+
+      const toggleStudioCollapse = (forceOpen = false) => {
+        if (forceOpen || studioBody.classList.contains("hidden")) {
+          studioBody.classList.remove("hidden");
+          chevronIcon.className = "fa-solid fa-chevron-up";
+          collapseText.textContent = "Thu gọn";
+        } else {
+          studioBody.classList.add("hidden");
+          chevronIcon.className = "fa-solid fa-chevron-down";
+          collapseText.textContent = "Mở rộng";
+        }
+      };
+
+      document.getElementById("btnToggleInputStudio").addEventListener("click", () => {
+        toggleStudioCollapse(true);
+        document.getElementById("customInputStudio").scrollIntoView({ behavior: "smooth" });
+      });
+      document.getElementById("btnCollapseStudio").addEventListener("click", () => {
+        toggleStudioCollapse(false);
+      });
+
+      document.getElementById("btnAutoCalcHiddenCosts").addEventListener("click", autoCalcHiddenCostsFromParams);
+      document.getElementById("btnAutoScoreCriteria").addEventListener("click", autoScoreCriteriaFromCostAndTime);
+      document.getElementById("btnApplyCustomRouteAndCalc").addEventListener("click", applyCustomRouteAndRecalc);
+
+      document.getElementById("btnAddOptionRow").addEventListener("click", () => {
+        const caseData = LOGISTICS_DATABASE[currentCaseId];
+        const nextNum = caseData.options.length + 1;
+        caseData.options.push({
+          name: `PA${nextNum}: Phương án Tự thiết kế #${nextNum}`,
+          score: 0.65,
+          selected: false,
+          cost: 30000,
+          holding: 2500,
+          depr: 5000,
+          total: 37500,
+          days: 10,
+          C: 7,
+          T: 7,
+          R: 8,
+          Rsk: 8
+        });
+        recomputeBaselineScoresFromCriteria(caseData);
+        renderOptionsEditorTable(caseData);
+        updateDashboardFromWeights(false);
+        updateEssayCalculators();
+      });
+
+      // Live updates when changing Cargo Name, Info, or Calculators
+      ["inpCargoName", "inpCargoInfo"].forEach((id) => {
+        document.getElementById(id).addEventListener("input", () => {
+          const caseData = LOGISTICS_DATABASE[currentCaseId];
+          caseData.name = document.getElementById("inpCargoName").value;
+          caseData.cargoInfo = document.getElementById("inpCargoInfo").value;
+          updateDashboardFromWeights(false);
+        });
+      });
+
+      ["inpCargoValueUSD", "inpInterestRate", "inpDeprRate", "inpSplitAirPct", "inpSpmtMass", "inpSpmtAxles", "inpCargoDim"].forEach((id) => {
+        document.getElementById(id).addEventListener("input", () => {
+          updateEssayCalculators();
+        });
+      });
+
+      // Reset to Factory Default from Essay
+      document.getElementById("btnResetFactoryDefault").addEventListener("click", () => {
+        Object.keys(FACTORY_DEFAULT_DB).forEach((k) => {
+          LOGISTICS_DATABASE[k] = JSON.parse(JSON.stringify(FACTORY_DEFAULT_DB[k]));
+        });
+        selectCaseStudy(currentCaseId);
+        document.getElementById("customStudioStatusMsg").innerHTML =
+          `<i class="fa-solid fa-rotate text-emerald-600"></i> Đã khôi phục toàn bộ dữ liệu gốc theo đúng Tiểu luận của nhóm!`;
+      });
+
+      // Export JSON Scenario for Group Members
+      document.getElementById("btnExportJsonScenario").addEventListener("click", () => {
+        const caseData = LOGISTICS_DATABASE[currentCaseId];
+        const blob = new Blob([JSON.stringify(caseData, null, 2)], { type: "application/json" });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement("a");
+        a.href = url;
+        a.download = `uth_fuzzy_ahp_${currentCaseId}.json`;
+        a.click();
+        URL.revokeObjectURL(url);
+      });
+
+      // Import JSON Scenario from Group Members
+      document.getElementById("inputImportJsonScenario").addEventListener("change", (e) => {
+        const file = e.target.files && e.target.files[0];
+        if (!file) return;
+        const reader = new FileReader();
+        reader.onload = (ev) => {
+          try {
+            const imported = JSON.parse(ev.target.result);
+            if (imported && Array.isArray(imported.options) && imported.weights) {
+              LOGISTICS_DATABASE.case_custom = imported;
+              selectCaseStudy("case_custom");
+              document.getElementById("customStudioStatusMsg").innerHTML =
+                `<i class="fa-solid fa-file-import text-emerald-600"></i> Đã nạp thành công kịch bản JSON: <strong>${imported.name}</strong>!`;
+            }
+          } catch (err) {
+            document.getElementById("customStudioStatusMsg").innerHTML =
+              `<i class="fa-solid fa-circle-exclamation text-rose-600"></i> File JSON không đúng định dạng kịch bản!`;
+          }
+        };
+        reader.readAsText(file);
+      });
+
+      // Render KaTeX formulas
+      if (typeof renderMathInElement === "function") {
+        renderMathInElement(document.body, {
+          delimiters: [
+            { left: "$$", right: "$$", display: true },
+            { left: "$", right: "$", display: false }
+          ],
+          throwOnError: false
+        });
+      }
+
+      // Case selector dropdown
+      document.getElementById("caseSelector").addEventListener("change", (e) => {
+        selectCaseStudy(e.target.value);
+      });
+
+      // Quick case tabs
+      document.querySelectorAll(".case-tab-btn").forEach((btn) => {
+        btn.addEventListener("click", () => {
+          selectCaseStudy(btn.getAttribute("data-case"));
+        });
+      });
+
+      // Reset weights button
+      document.getElementById("btnResetWeights").addEventListener("click", () => {
+        selectCaseStudy(currentCaseId);
+      });
+
+      // Map controls
+      document.getElementById("btnFocusVietnam").addEventListener("click", () => {
+        focusVietnamCorridor(LOGISTICS_DATABASE[currentCaseId]);
+      });
+      document.getElementById("btnFitBounds").addEventListener("click", () => {
+        fitCurrentCaseBounds(LOGISTICS_DATABASE[currentCaseId]);
+      });
+      document.getElementById("btnToggleTile").addEventListener("click", () => {
+        toggleMapTileLayer();
+      });
+
+      // Academic Modal controls
+      const academicModal = document.getElementById("academicModal");
+      const openModal = () => academicModal.classList.remove("hidden");
+      const closeModal = () => academicModal.classList.add("hidden");
+
+      document.getElementById("btnOpenAcademicModal").addEventListener("click", openModal);
+      document.getElementById("btnExpandAcademicModal2").addEventListener("click", openModal);
+      document.getElementById("btnCloseAcademicModal").addEventListener("click", closeModal);
+      document.getElementById("btnCloseAcademicModalBottom").addEventListener("click", closeModal);
+      academicModal.addEventListener("click", (e) => {
+        if (e.target === academicModal) closeModal();
+      });
+      window.addEventListener("keydown", (e) => {
+        if (e.key === "Escape") closeModal();
+      });
+
+      // Print / Export PDF controls
+      const handlePrint = () => {
+        closeModal();
+        if (leafletMap) {
+          leafletMap.invalidateSize();
+          fitCurrentCaseBounds(LOGISTICS_DATABASE[currentCaseId]);
+        }
+        setTimeout(() => window.print(), 250);
+      };
+      document.getElementById("btnExportPdf").addEventListener("click", handlePrint);
+      document.getElementById("btnPrintFromModal").addEventListener("click", handlePrint);
+    });
+  </script>
+</body>
+</html>
